@@ -146,8 +146,8 @@ export default function EOSPage({ params }) {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', padding: 18, borderRadius: 'var(--radius)', marginBottom: 8 }}>
-                <p style={{ fontSize: '.8rem', color: 'var(--text-2)', lineHeight: 1.5 }}>
+              <div className="info-box">
+                <p style={{ fontSize: '.8rem' }}>
                   <strong>EOS Calculation Basis:</strong> Gratuity (Art. 54) is based on <em>basic salary only</em>. Leave Encashment is calculated based on <em>Basic Salary + Phone Allowance</em>, plus <em>Accommodation Allowance</em> only if the accommodation is not provided by the company (Accommodation Type: 'self').
                 </p>
               </div>

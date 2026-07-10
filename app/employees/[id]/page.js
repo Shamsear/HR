@@ -162,7 +162,7 @@ export default function ProfilePage({ params }) {
               </div>
 
               {emp.status !== 'Terminated' && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+                <div className="action-bar">
                   <Link href={`/employees/${emp.id}/vacation`} className="btn btn-primary">Book Vacation</Link>
                   <Link href={`/employees/${emp.id}/hike`} className="btn btn-ghost">Apply Hike</Link>
                   <div style={{ flex: 1 }} />
@@ -345,9 +345,9 @@ export default function ProfilePage({ params }) {
           {/* ── ACCRUAL ── */}
           {tab === 'accrual' && (
             <>
-              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', padding: 22, borderRadius: 'var(--radius)', marginBottom: 28, fontSize: '.88rem', lineHeight: 1.6 }}>
+              <div className="info-box brand">
                 <p><strong>How it works:</strong></p>
-                <ul style={{ paddingLeft: 20, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <ul>
                   <li>Accrual starts from <strong>Joining Date</strong> or day after <strong>Last Vacation Return</strong>.</li>
                   <li><strong>First 5 years:</strong> 21 days/year</li>
                   <li><strong>After 5 years:</strong> 28 days/year</li>
@@ -377,28 +377,17 @@ export default function ProfilePage({ params }) {
                       </div>
                     </div>
                     
-                    <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', padding: 18, borderRadius: 'var(--radius)', marginBottom: 28, fontSize: '.88rem', lineHeight: 1.6 }}>
-                      <strong style={{ display: 'block', marginBottom: 8, fontSize: '.9rem' }}>Leave Balance Breakdown & Value Formula:</strong>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Total Earned (Accrued since joining):</span>
-                          <strong>{totalAccrued.toFixed(2)} days</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--red)' }}>
-                          <span>Total Taken (Vacations booked):</span>
-                          <strong>- {totalTaken} days</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border)', paddingTop: 6, fontWeight: 700, color: netBalance < 0 ? 'var(--red)' : 'var(--green)' }}>
-                          <span>Net Balance (Unused days):</span>
-                          <span>{netBalance.toFixed(2)} days</span>
-                        </div>
+                    <div className="info-box">
+                      <strong style={{ display: 'block', marginBottom: 10, fontSize: '.9rem' }}>Leave Balance Breakdown &amp; Value Formula</strong>
+                      <div className="calc">
+                        <div className="calc-row"><span className="lbl">Total Earned (Accrued since joining)</span><strong>{totalAccrued.toFixed(2)} days</strong></div>
+                        <div className="calc-row neg"><span className="lbl">Total Taken (Vacations booked)</span><span className="val">− {totalTaken} days</span></div>
+                        <div className={`calc-row div ${netBalance < 0 ? 'neg' : 'pos'}`} style={{ fontWeight: 700 }}><span>Net Balance (Unused days)</span><span className="val">{netBalance.toFixed(2)} days</span></div>
                       </div>
-                      
-                      <strong>Current Unused Value Calculation:</strong>
-                      <div style={{ fontFamily: 'monospace', marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.8rem' }}>
+                      <div className="formula">
                         <div>Monthly Basis = {basic.toLocaleString()} (Basic) + {phone.toLocaleString()} (Phone) + {food.toLocaleString()} (Food) {emp.accommodationType === 'self' ? `+ ${accom.toLocaleString()} (Accommodation)` : '+ 0 (Accommodation by Company)'} = {basis.toLocaleString()} QAR</div>
                         <div>Daily Rate = {basis.toLocaleString()} ÷ 30 days = {dailyRate.toFixed(2)} QAR/day</div>
-                        <div>Unused Value = {netBalance.toFixed(2)} days (Net Balance) × {dailyRate.toFixed(2)} QAR/day = {unusedValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</div>
+                        <div>Unused Value = {netBalance.toFixed(2)} days × {dailyRate.toFixed(2)} QAR/day = {unusedValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</div>
                       </div>
                     </div>
                   </>
@@ -424,9 +413,9 @@ export default function ProfilePage({ params }) {
           {tab === 'eos' && (
             <>
               {emp.status === 'Terminated' ? (
-                <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', padding: 22, borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                <div className="info-box" style={{ textAlign: 'center' }}>
                   <h3 style={{ color: 'var(--red)', marginBottom: 8 }}>Employee is Terminated</h3>
-                  <p style={{ color: 'var(--text-3)' }}>This profile was deactivated on <strong>{emp.endDate}</strong>.</p>
+                  <p>This profile was deactivated on <strong>{emp.endDate}</strong>.</p>
                 </div>
               ) : (
                 <div>
@@ -520,8 +509,8 @@ export default function ProfilePage({ params }) {
                           </div>
                         </div>
 
-                        <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', padding: 18, borderRadius: 'var(--radius)', marginBottom: 28 }}>
-                          <p style={{ fontSize: '.8rem', color: 'var(--text-2)', lineHeight: 1.5 }}>
+                        <div className="info-box">
+                          <p style={{ fontSize: '.8rem' }}>
                             <strong>EOS Calculation Basis:</strong> Gratuity (Art. 54) is based on <em>basic salary only</em>. Leave Encashment is calculated based on <em>Basic Salary + Phone Allowance + Food Allowance</em>, plus <em>Accommodation Allowance</em> only if Accommodation Type is 'self'.
                           </p>
                         </div>

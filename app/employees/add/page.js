@@ -64,7 +64,7 @@ export default function AddEmployeePage() {
         </div>
 
         <form onSubmit={submit} className="page-body">
-          <h3 className="section-title" style={{ marginTop: 0 }}>Personal Details</h3>
+          <h3 className="form-section"><span className="num">1</span> Personal Details</h3>
           <div className="form-grid">
             <div className="field"><label>Full Name *</label><input value={f.name} onChange={set('name')} placeholder="Enter name" required /></div>
             <div className="field"><label>QID (Qatar ID) *</label><input value={f.qid} onChange={set('qid')} placeholder="11 digits" required /></div>
@@ -76,7 +76,7 @@ export default function AddEmployeePage() {
             <div className="field"><label>Joining Date *</label><input type="date" value={f.joining} onChange={set('joining')} required /></div>
           </div>
 
-          <h3 className="section-title">Employment Category</h3>
+          <h3 className="form-section"><span className="num">2</span> Employment Category</h3>
           <div className="form-grid">
             <div className="field">
               <label>Category Type *</label>
@@ -87,7 +87,7 @@ export default function AddEmployeePage() {
             </div>
           </div>
 
-          <h3 className="section-title">Compensation</h3>
+          <h3 className="form-section"><span className="num">3</span> Compensation</h3>
           <div className="form-grid">
             <div className="field"><label>Basic Salary (QAR) *</label><input type="number" min="1" value={f.basic} onChange={set('basic')} required /></div>
             <div className="field">

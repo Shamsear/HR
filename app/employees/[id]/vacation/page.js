@@ -112,24 +112,15 @@ export default function VacationPage({ params }) {
             }
 
             return (
-              <div style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', padding: '20px 24px', borderRadius: 'var(--radius)', marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '.88rem', color: 'var(--text-2)', fontWeight: 600 }}>Balance (as of {calculationDate})</span>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: balance < 0 ? 'var(--red)' : 'var(--green)' }}>{balance.toFixed(2)} days</span>
+              <div className="balance-card">
+                <div className="balance-card-head">
+                  <span className="lbl">Balance (as of {calculationDate})</span>
+                  <span className="val" style={{ color: balance < 0 ? 'var(--red)' : 'var(--green)' }}>{balance.toFixed(2)} days</span>
                 </div>
-                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: '.8rem', color: 'var(--text-2)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Monthly Leave Basis:</span>
-                    <strong>{basis.toLocaleString()} QAR</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Daily Rate (Basis ÷ 30):</span>
-                    <strong>{dailyRate.toFixed(2)} QAR/day</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Unused Value (as of {calculationDate}):</span>
-                    <strong style={{ color: balance < 0 ? 'var(--red)' : 'var(--green)' }}>{(balance * dailyRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</strong>
-                  </div>
+                <div className="balance-card-body calc">
+                  <div className="calc-row"><span className="lbl">Monthly Leave Basis</span><span className="val">{basis.toLocaleString()} QAR</span></div>
+                  <div className="calc-row"><span className="lbl">Daily Rate (Basis ÷ 30)</span><span className="val">{dailyRate.toFixed(2)} QAR/day</span></div>
+                  <div className={`calc-row ${balance < 0 ? 'neg' : 'pos'}`}><span className="lbl">Unused Value</span><span className="val">{(balance * dailyRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
                   {estimatedDuration > 0 && (() => {
                     const availableBalance = Math.max(0, balance);
                     const paidDays = Math.min(estimatedDuration, availableBalance);
@@ -139,23 +130,16 @@ export default function VacationPage({ params }) {
                     const netSalary = paidAmount - deductionAmount;
 
                     return (
-                      <div style={{ marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <strong style={{ fontSize: '.85rem', color: 'var(--text-1)', display: 'block', marginBottom: 4 }}>Estimated Leave Salary Breakdown:</strong>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Paid Days ({paidDays.toFixed(1)}d × {dailyRate.toFixed(2)} QAR):</span>
-                          <span style={{ color: 'var(--green)', fontWeight: 600 }}>+{paidAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span>
+                      <>
+                        <div className="calc-row rule" style={{ fontWeight: 700, color: 'var(--text-1)' }}>
+                          <span>Estimated Leave Salary ({estimatedDuration}d)</span>
                         </div>
+                        <div className="calc-row pos"><span className="lbl">Paid Days ({paidDays.toFixed(1)}d × {dailyRate.toFixed(2)})</span><span className="val">+{paidAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
                         {excessDays > 0 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--red)' }}>
-                            <span>Excess Days Deducted ({excessDays.toFixed(1)}d × {dailyRate.toFixed(2)} QAR):</span>
-                            <span>-{deductionAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span>
-                          </div>
+                          <div className="calc-row neg"><span className="lbl">Excess Deducted ({excessDays.toFixed(1)}d × {dailyRate.toFixed(2)})</span><span className="val">−{deductionAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border)', paddingTop: 6, fontWeight: 800, color: 'var(--accent)', fontSize: '.85rem' }}>
-                          <span>Net Estimated Leave Salary:</span>
-                          <span>{netSalary < 0 ? '−' : ''}{Math.abs(netSalary).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span>
-                        </div>
-                      </div>
+                        <div className="calc-row div total accent"><span>Net Estimated Salary</span><span className="val">{netSalary < 0 ? '−' : ''}{Math.abs(netSalary).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
+                      </>
                     );
                   })()}
                 </div>
