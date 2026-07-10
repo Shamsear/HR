@@ -748,56 +748,116 @@ button { font-family: inherit; }
    RESPONSIVE
    ============================ */
 @media (max-width:768px) {
-  .app-shell { padding: 16px; }
+  .app-shell { padding: 12px; }
 
+  /* Topbar */
   .topbar {
     flex-direction: column;
     align-items: stretch;
-    padding: 16px;
+    padding: 14px;
+    gap: 12px;
+    margin-bottom: 16px;
   }
-  .topbar-actions { justify-content: flex-end; }
+  .topbar-text h1 { font-size: 1rem; }
+  .topbar-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar-actions .btn, .topbar-actions label.btn {
+    font-size: .78rem;
+    padding: 8px 12px;
+  }
 
-  .panel-toolbar { flex-direction: column; align-items: stretch; }
+  /* Stats */
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat { padding: 16px; }
+  .stat-value { font-size: 1.4rem; }
+  .stat-label { font-size: .68rem; }
+  .stat-icon { width: 38px; height: 38px; }
+
+  /* Panel */
+  .panel { margin-bottom: 16px; }
+  .panel-toolbar { padding: 14px; gap: 10px; }
   .search-wrap { max-width: 100%; }
-  .filters { width: 100%; }
-  .sel { flex: 1; min-width: 0; }
+  .filters { width: 100%; margin-left: 0; }
+  .sel { flex: 1; min-width: 0; font-size: .82rem; }
 
-  .page-head { flex-direction: column; align-items: flex-start; padding: 20px; }
-  .page-body { padding: 20px; }
-
-  .detail-grid { grid-template-columns: 1fr; }
-  .form-grid   { grid-template-columns: 1fr; }
-
-  .form-footer {
-    flex-direction: column-reverse;
+  /* Page cards */
+  .page-card { border-radius: var(--radius); }
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 10px;
   }
+  .page-head-title {
+    font-size: 1.1rem;
+    gap: 8px;
+  }
+  .page-head-title svg { width: 18px; height: 18px; }
+  .page-head-sub { font-size: .78rem; }
+  .page-body { padding: 16px; }
+
+  /* Tabs */
+  .tabs { margin-bottom: 20px; gap: 0; }
+  .tab { padding: 10px 14px; font-size: .78rem; }
+
+  /* Detail grid */
+  .detail-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+  .detail-cell { padding: 14px 16px; }
+  .detail-cell-value { font-size: .9rem; }
+
+  /* Forms */
+  .form-grid { grid-template-columns: 1fr; gap: 14px; }
+  .form-footer { flex-direction: column-reverse; gap: 8px; margin-top: 20px; }
   .form-footer .btn { width: 100%; }
 
+  /* EOS / ledger tables */
+  .eos-list { font-size: .82rem; }
+  .eos-row { padding: 10px 0; gap: 8px; }
+  .ledger-wrap { font-size: .82rem; }
+  .ledger-wrap th, .ledger-wrap td { padding: 10px 12px; }
+
+  /* Pagination */
+  .paging {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  /* Drawer */
   .drawer { max-width: 100%; }
 
-  .search-wrap input,
-  .field input,
-  .field select,
-  .field textarea,
-  .login-field input {
-    font-size: 16px !important;
-  }
-
-  .tbl-wrap {
-    display: none;
-  }
+  /* Table → Cards switch */
+  .tbl-wrap { display: none; }
   .card-list-wrap {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     padding: 8px 0;
   }
   .employee-card {
     background: var(--bg-inset);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 18px;
+    padding: 16px;
     box-shadow: var(--shadow-sm);
+  }
+
+  /* Prevent iOS/Android zoom on input focus */
+  .search-wrap input,
+  .field input,
+  .field select,
+  .field textarea,
+  .login-field input,
+  .sel {
+    font-size: 16px !important;
   }
 }
 
