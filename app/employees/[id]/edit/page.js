@@ -34,6 +34,7 @@ export default function EditEmployeePage({ params }) {
         trans: String(emp.transportAllowance ?? '0'),
         phone: String(emp.phoneAllowance ?? '0'),
         food: String(emp.foodAllowance ?? '0'),
+        otherAllowance: String(emp.otherAllowance ?? '0'),
       });
     }
   }, [emp]);
@@ -66,7 +67,8 @@ export default function EditEmployeePage({ params }) {
     (f.accomType === 'self' ? (parseFloat(f.accomAllow) || 0) : 0) +
     (parseFloat(f.trans) || 0) +
     (parseFloat(f.phone) || 0) +
-    (parseFloat(f.food) || 0);
+    (parseFloat(f.food) || 0) +
+    (parseFloat(f.otherAllowance) || 0);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -89,6 +91,7 @@ export default function EditEmployeePage({ params }) {
       transportAllowance: parseFloat(f.trans) || 0,
       phoneAllowance: parseFloat(f.phone) || 0,
       foodAllowance: parseFloat(f.food) || 0,
+      otherAllowance: parseFloat(f.otherAllowance) || 0,
     };
 
     try {
@@ -159,6 +162,7 @@ export default function EditEmployeePage({ params }) {
             <div className="field"><label>Transport</label><div className="input-suffix"><input type="number" min="0" value={f.trans} onChange={set('trans')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
             <div className="field"><label>Phone</label><div className="input-suffix"><input type="number" min="0" value={f.phone} onChange={set('phone')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
             <div className="field"><label>Food Allowance</label><div className="input-suffix"><input type="number" min="0" value={f.food} onChange={set('food')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
+            <div className="field"><label>Other Allowance</label><div className="input-suffix"><input type="number" min="0" value={f.otherAllowance} onChange={set('otherAllowance')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
           </div>
 
           <div className="gross-preview">

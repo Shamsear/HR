@@ -48,7 +48,8 @@ export default function ProfilePage({ params }) {
   const trans = parseFloat(emp.transportAllowance) || 0;
   const phone = parseFloat(emp.phoneAllowance) || 0;
   const food = parseFloat(emp.foodAllowance) || 0;
-  const gross = basic + accom + trans + phone + food;
+  const other = parseFloat(emp.otherAllowance) || 0;
+  const gross = basic + accom + trans + phone + food + other;
 
   const balance = AccrualEngine.calculateVacationBalance(emp, today);
   const tenure = calculateTenure(emp.joiningDate, today);
@@ -59,8 +60,25 @@ export default function ProfilePage({ params }) {
   const elapsed = Math.max(0, dateDiffInDays(lastReturn, today));
   const rate = tenure.years >= 5 ? 28 : 21;
 
+  const isOverstay = emp.status === 'On Leave' && emp.vacations.some(v => {
+    const end = new Date(v.endDate);
+    return new Date(today) > end;
+  });
+
   return (
     <div className="app-shell">
+      {isOverstay && (
+        <div className="alert danger" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Overstay Alert (Salary Calculations Paused)</span>
+          </div>
+          <div style={{ fontSize: '.85rem' }}>
+            This employee has not returned from vacation on schedule. Salary calculations and basic projections are flagged and paused.
+          </div>
+        </div>
+      )}
+
       <div className="page-card">
         {/* Hero */}
         <div className="profile-hero">
@@ -138,12 +156,12 @@ export default function ProfilePage({ params }) {
               <div className="detail-grid">
                 <Cell label="Full Name" value={emp.name} />
                 <Cell label="Qatar ID (QID)" value={emp.qid} />
-                <DocCell label="QID Expiry" date={emp.qidExpiry} status={qS.status} />
+                <DocCell label="QID Expiry" date={emp.qidExpiry} status={qS.status} empId={emp.id} docType="QID" />
                 <Cell label="Passport" value={emp.passportNo} />
-                <DocCell label="Passport Expiry" date={emp.passportExpiry} status={pS.status} />
+                <DocCell label="Passport Expiry" date={emp.passportExpiry} status={pS.status} empId={emp.id} docType="Passport" />
                 <Cell label="Driving License" value={emp.licenseNo || '—'} />
                 {emp.licenseNo
-                  ? <DocCell label="License Expiry" date={emp.licenseExpiry} status={lS.status} />
+                  ? <DocCell label="License Expiry" date={emp.licenseExpiry} status={lS.status} empId={emp.id} docType="License" />
                   : <Cell label="License Expiry" value="—" />}
                 <Cell label="Joining Date" value={emp.joiningDate} />
                 <Cell label="Employment Category" value={emp.roleType} />
@@ -169,6 +187,7 @@ export default function ProfilePage({ params }) {
                 <Cell label="Transport" value={`${trans.toLocaleString()} QAR`} />
                 <Cell label="Phone" value={`${phone.toLocaleString()} QAR`} />
                 <Cell label="Food Allowance" value={`${food.toLocaleString()} QAR`} />
+                <Cell label="Other Allowance" value={`${other.toLocaleString()} QAR`} />
                 <div className="detail-cell accent">
                   <div className="detail-cell-label">Total Gross</div>
                   <div className="detail-cell-value">{gross.toLocaleString()} QAR</div>
@@ -622,19 +641,70 @@ function Cell({ label, value }) {
   );
 }
 
-function DocCell({ label, date, status }) {
+function DocCell({ label, date, status, empId, docType }) {
+  const { renewDocument } = useHR();
+  const [editing, setEditing] = useState(false);
+  const [newDate, setNewDate] = useState(date || '');
+
   const map = {
     expired:  { cls: 'bad',  txt: 'Expired' },
     expiring: { cls: 'warn', txt: 'Expiring' },
     active:   { cls: 'ok',   txt: 'Valid' },
   };
   const s = map[status] || map.active;
+
+  const handleRenew = async () => {
+    if (!newDate) return;
+    await renewDocument(empId, docType, newDate);
+    setEditing(false);
+  };
+
   return (
     <div className="detail-cell">
-      <div className="detail-cell-label">{label}</div>
-      <div className="detail-cell-value doc-val">
-        {date || '—'}
-        {date && <span className={`tag ${s.cls}`}>{s.txt}</span>}
+      <div className="detail-cell-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{label}</span>
+        {status !== 'active' && !editing && (
+          <button 
+            type="button" 
+            onClick={() => setEditing(true)} 
+            style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '.7rem', fontWeight: 700 }}
+          >
+            Quick Renew
+          </button>
+        )}
+      </div>
+      <div className="detail-cell-value doc-val" style={{ marginTop: 4 }}>
+        {editing ? (
+          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+            <input 
+              type="date" 
+              value={newDate} 
+              onChange={e => setNewDate(e.target.value)} 
+              style={{ padding: '4px 8px', fontSize: '.8rem', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--bg-app)', color: 'var(--text-1)' }} 
+            />
+            <button 
+              type="button" 
+              onClick={handleRenew} 
+              className="btn btn-primary" 
+              style={{ padding: '4px 8px', fontSize: '.75rem', borderRadius: '6px' }}
+            >
+              Save
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setEditing(false)} 
+              className="btn btn-ghost" 
+              style={{ padding: '4px 8px', fontSize: '.75rem', borderRadius: '6px' }}
+            >
+              &times;
+            </button>
+          </div>
+        ) : (
+          <>
+            {date || '—'}
+            {date && <span className={`tag ${s.cls}`}>{s.txt}</span>}
+          </>
+        )}
       </div>
     </div>
   );

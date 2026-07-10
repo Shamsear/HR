@@ -180,16 +180,17 @@ export class AccrualEngine {
       accommodation: employee.accommodationType === 'self' ? (parseFloat(employee.accommodationAllowance) || 0) : 0,
       transport: parseFloat(employee.transportAllowance) || 0,
       phone: parseFloat(employee.phoneAllowance) || 0,
-      food: parseFloat(employee.foodAllowance) || 0
+      food: parseFloat(employee.foodAllowance) || 0,
+      other: parseFloat(employee.otherAllowance) || 0
     };
 
-    const totalSalary = basicSalary + allowances.accommodation + allowances.transport + allowances.phone + allowances.food;
+    const totalSalary = basicSalary + allowances.accommodation + allowances.transport + allowances.phone + allowances.food + allowances.other;
 
     // Gratuity: basic salary only (Art. 54)
     const dailyBasicWage = basicSalary / 30;
 
-    // Leave salary wage basis: Basic + Phone + Food + (Accommodation Allowance only if accommodation is self)
-    const leaveSalaryBasis = basicSalary + allowances.phone + allowances.food + (employee.accommodationType === 'self' ? allowances.accommodation : 0);
+    // Leave salary wage basis: Basic + Phone + Food + Other + (Accommodation Allowance only if accommodation is self)
+    const leaveSalaryBasis = basicSalary + allowances.phone + allowances.food + allowances.other + (employee.accommodationType === 'self' ? allowances.accommodation : 0);
     const dailyLeaveWage = leaveSalaryBasis / 30;
 
     const tenure = calculateTenure(employee.joiningDate, endDateStr);
@@ -222,21 +223,41 @@ export class AccrualEngine {
 
   /**
    * Calculates the daily leave salary basis:
-   * Basic + Phone + Food + (Accommodation Allowance only if accommodationType is 'self')
+   * Basic + Phone + Food + Other + (Accommodation Allowance only if accommodationType is 'self')
    */
   static calculateLeaveSalary(employee) {
     const basic = parseFloat(employee.basicSalary) || 0;
     const phone = parseFloat(employee.phoneAllowance) || 0;
     const food = parseFloat(employee.foodAllowance) || 0;
+    const other = parseFloat(employee.otherAllowance) || 0;
     const accom = employee.accommodationType === 'self' ? (parseFloat(employee.accommodationAllowance) || 0) : 0;
-    const leaveSalaryBasis = basic + phone + food + accom;
+    const leaveSalaryBasis = basic + phone + food + other + accom;
     return {
       leaveSalaryBasis,
       dailyLeaveSalary: parseFloat((leaveSalaryBasis / 30).toFixed(2)),
       basicSalary: basic,
       phoneAllowance: phone,
       foodAllowance: food,
+      otherAllowance: other,
       accommodationAllowance: accom
     };
   }
+}
+
+/**
+ * Checks if an employee has overstayed their vacation end date without return.
+ */
+export function isOverstaying(employee, targetDateStr = formatDate(new Date())) {
+  if (!employee || !employee.vacations || employee.vacations.length === 0 || employee.status !== 'On Leave') return false;
+  const target = new Date(targetDateStr);
+  
+  // Find ongoing/latest vacation
+  const ongoing = employee.vacations.find(v => {
+    const start = new Date(v.startDate);
+    const end = new Date(v.endDate);
+    // Checked if today is past the end date
+    return target > end;
+  });
+
+  return !!ongoing;
 }

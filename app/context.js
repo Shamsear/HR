@@ -284,6 +284,7 @@ export function HRProvider({ children }) {
           transportAllowance: Number(emp.transport_allowance),
           phoneAllowance: Number(emp.phone_allowance),
           foodAllowance: Number(emp.food_allowance),
+          otherAllowance: Number(emp.other_allowance ?? 0),
           status: emp.status,
           endDate: empTerm ? empTerm.end_date : (emp.end_date || ''),
           eosDetails: empTerm ? empTerm.eos_details : null,
@@ -350,6 +351,7 @@ export function HRProvider({ children }) {
         transport_allowance: emp.transportAllowance,
         phone_allowance: emp.phoneAllowance,
         food_allowance: emp.foodAllowance,
+        other_allowance: emp.otherAllowance || 0,
         status: emp.status,
         end_date: emp.endDate || null
       });
@@ -520,6 +522,7 @@ export function HRProvider({ children }) {
       transport_allowance: newEmp.transportAllowance,
       phone_allowance: newEmp.phoneAllowance,
       food_allowance: newEmp.foodAllowance,
+      other_allowance: newEmp.otherAllowance || 0,
       status: newEmp.status,
       end_date: newEmp.endDate || null
     });
@@ -553,7 +556,8 @@ export function HRProvider({ children }) {
       accommodation_allowance: data.accommodationAllowance,
       transport_allowance: data.transportAllowance,
       phone_allowance: data.phoneAllowance,
-      food_allowance: data.foodAllowance
+      food_allowance: data.foodAllowance,
+      other_allowance: data.otherAllowance || 0
     }).eq('id', empId);
 
     await refreshData();
@@ -694,10 +698,10 @@ export function HRProvider({ children }) {
 
   const exportCSV = () => {
     let csv = "data:text/csv;charset=utf-8,";
-    csv += "ID,Name,QID,QID Expiry,Passport,Passport Expiry,License,License Expiry,Joining,Role Type,Basic,Accom Type,Accom Allow,Transport,Phone,Food,Vacation Bal\n";
+    csv += "ID,Name,QID,QID Expiry,Passport,Passport Expiry,License,License Expiry,Joining,Role Type,Basic,Accom Type,Accom Allow,Transport,Phone,Food,Other Allow,Vacation Bal\n";
     employees.forEach(emp => {
       const bal = AccrualEngine.calculateVacationBalance(emp, formatDate(new Date()));
-      csv += [emp.id, `"${emp.name}"`, emp.qid, emp.qidExpiry, emp.passportNo, emp.passportExpiry, emp.licenseNo || '', emp.licenseExpiry || '', emp.joiningDate, emp.roleType, emp.basicSalary, emp.accommodationType, emp.accommodationAllowance, emp.transportAllowance, emp.phoneAllowance, emp.foodAllowance || 0, bal].join(",") + "\n";
+      csv += [emp.id, `"${emp.name}"`, emp.qid, emp.qidExpiry, emp.passportNo, emp.passportExpiry, emp.licenseNo || '', emp.licenseExpiry || '', emp.joiningDate, emp.roleType, emp.basicSalary, emp.accommodationType, emp.accommodationAllowance, emp.transportAllowance, emp.phoneAllowance, emp.foodAllowance || 0, emp.otherAllowance || 0, bal].join(",") + "\n";
     });
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csv));
@@ -737,6 +741,7 @@ export function HRProvider({ children }) {
               transport_allowance: emp.transportAllowance,
               phone_allowance: emp.phoneAllowance,
               food_allowance: emp.foodAllowance,
+              other_allowance: emp.otherAllowance || 0,
               status: emp.status,
               end_date: emp.endDate || null
             });
@@ -922,6 +927,31 @@ export function HRProvider({ children }) {
     localStorage.removeItem('hr_authenticated');
   };
 
+  const renewDocument = async (empId, docType, newExpiryDate) => {
+    const colName = docType === 'QID' ? 'qid_expiry' : docType === 'Passport' ? 'passport_expiry' : 'license_expiry';
+    
+    await supabase.from('employees').update({
+      [colName]: newExpiryDate
+    }).eq('id', empId);
+
+    const target = employees.find(e => e.id === empId);
+    const title = `${docType} Renewed`;
+    const body = `${target ? target.name : empId}'s ${docType} has been renewed to ${newExpiryDate}.`;
+
+    await supabase.from('notifications').insert({
+      id: Math.random().toString(36).substring(2, 9),
+      title,
+      body,
+      category: 'success',
+      employee_id: empId,
+      is_read: false
+    });
+
+    await logAuditAction('RENEW_DOCUMENT', empId, { employeeId: empId, docType, newExpiryDate });
+    await refreshData();
+    triggerNativeNotification(title, body);
+  };
+
   return (
     <HRContext.Provider value={{
       employees, notifications, search, setSearch, roleTypeFilter, setRoleTypeFilter,
@@ -930,7 +960,7 @@ export function HRProvider({ children }) {
       processEOS, exportCSV, importJSON, clearNotifications, clearNotification,
       markAllRead, markNotificationRead, toggleTheme, handleEnablePush,
       drawerOpen, setDrawerOpen, isAuthenticated, login, logout,
-      auditLogs, revertAction,
+      auditLogs, revertAction, renewDocument,
       toast, confirm
     }}>
       {children}

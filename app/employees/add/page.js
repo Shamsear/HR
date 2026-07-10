@@ -13,7 +13,7 @@ export default function AddEmployeePage() {
   const [f, setF] = useState({
     name: '', qid: '', qidExpiry: '', passport: '', passportExpiry: '',
     license: '', licenseExpiry: '', joining: '', roleType: 'Staff',
-    basic: '', accomType: 'company', accomAllow: '0', trans: '0', phone: '0', food: '0'
+    basic: '', accomType: 'company', accomAllow: '0', trans: '0', phone: '0', food: '0', otherAllowance: '0'
   });
 
   const set = (key) => (e) => setF(p => ({ ...p, [key]: e.target.value }));
@@ -23,7 +23,8 @@ export default function AddEmployeePage() {
     (f.accomType === 'self' ? (parseFloat(f.accomAllow) || 0) : 0) +
     (parseFloat(f.trans) || 0) +
     (parseFloat(f.phone) || 0) +
-    (parseFloat(f.food) || 0);
+    (parseFloat(f.food) || 0) +
+    (parseFloat(f.otherAllowance) || 0);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -43,6 +44,7 @@ export default function AddEmployeePage() {
       transportAllowance: parseFloat(f.trans) || 0,
       phoneAllowance: parseFloat(f.phone) || 0,
       foodAllowance: parseFloat(f.food) || 0,
+      otherAllowance: parseFloat(f.otherAllowance) || 0,
       vacations: [], salaryHistory: [], status: 'Active'
     };
 
@@ -120,6 +122,7 @@ export default function AddEmployeePage() {
             <div className="field"><label>Transport</label><div className="input-suffix"><input type="number" min="0" value={f.trans} onChange={set('trans')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
             <div className="field"><label>Phone</label><div className="input-suffix"><input type="number" min="0" value={f.phone} onChange={set('phone')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
             <div className="field"><label>Food Allowance</label><div className="input-suffix"><input type="number" min="0" value={f.food} onChange={set('food')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
+            <div className="field"><label>Other Allowance</label><div className="input-suffix"><input type="number" min="0" value={f.otherAllowance} onChange={set('otherAllowance')} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
           </div>
 
           <div className="gross-preview">

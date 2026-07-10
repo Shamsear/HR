@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
     transport_allowance NUMERIC NOT NULL,
     phone_allowance NUMERIC NOT NULL,
     food_allowance NUMERIC NOT NULL,
+    other_allowance NUMERIC NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'Active', -- 'Active', 'On Leave', 'Terminated'
     end_date TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -167,4 +168,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- Ensure future tables have these permissions
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated;
+
+-- Migration to add other_allowance column
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS other_allowance NUMERIC NOT NULL DEFAULT 0;
+
 
