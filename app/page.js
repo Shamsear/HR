@@ -128,10 +128,10 @@ export default function Dashboard() {
       {/* ── STATS ── */}
       <div className="stats-row">
         {[
-          { label: 'Total Employees', value: stats.total, icon: 'blue', cap: 'View all', filter: 'all', activeWhen: 'all', d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 0M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
-          { label: 'On Vacation', value: stats.leave, icon: 'amber', cap: 'Filter leave', filter: 'on-leave', activeWhen: 'on-leave', d: 'M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5ZM15 5l4 4' },
-          { label: 'Accrued Days', value: `${stats.accrued}`, icon: 'green', cap: 'Company-wide', filter: 'all', activeWhen: null, d: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM12 6v6l4 2' },
-          { label: 'Doc Warnings', value: stats.expDocs, icon: 'red', cap: 'Review docs', filter: 'expired-documents', activeWhen: 'expired-documents', d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M12 11v6M9 17h6' },
+          { label: 'Total Employees', value: stats.total, icon: 'blue', cap: 'View all', filter: 'all', activeWhen: 'all', paths: ['M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2', 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8', 'M23 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'] },
+          { label: 'On Vacation', value: stats.leave, icon: 'amber', cap: 'Filter leave', filter: 'on-leave', activeWhen: 'on-leave', paths: ['M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z', 'M15 5l4 4'] },
+          { label: 'Accrued Days', value: `${stats.accrued}`, icon: 'green', cap: 'Company-wide', filter: 'all', activeWhen: null, paths: ['M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z', 'M12 6v6l4 2'] },
+          { label: 'Doc Warnings', value: stats.expDocs, icon: 'red', cap: 'Review docs', filter: 'expired-documents', activeWhen: 'expired-documents', paths: ['M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z', 'M14 2v6h6', 'M12 11v6', 'M9 17h6'] },
         ].map(s => {
           const isAlert = s.filter === 'expired-documents' && stats.expDocs > 0;
           return (
@@ -142,7 +142,9 @@ export default function Dashboard() {
             >
               <div className="stat-top">
                 <div className={`stat-icon ${s.icon}`}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={s.d}/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {s.paths.map((p, idx) => <path key={idx} d={p} />)}
+                  </svg>
                 </div>
                 <div className="stat-label">{s.label}</div>
               </div>
