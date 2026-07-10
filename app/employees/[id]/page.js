@@ -267,7 +267,7 @@ export default function ProfilePage({ params }) {
                     <div className="ledger-wrap mobile-hide">
                       <table className="tbl">
                         <thead>
-                          <tr><th>Start</th><th>End</th><th>Days</th><th>Daily Rate</th><th>Paid / Unpaid</th><th>Leave Salary</th><th>Ticket</th><th>Status</th></tr>
+                          <tr><th>Start</th><th>End</th><th>Days</th><th>Daily Rate</th><th>Paid / Unpaid</th><th>Leave Salary</th><th>Ticket</th><th>Extension</th><th>Status</th></tr>
                         </thead>
                         <tbody>
                           {sorted.map(v => {
@@ -294,6 +294,9 @@ export default function ProfilePage({ params }) {
                                 <td>{v.ticketTaken
                                   ? <span className="tag ok">{(v.ticketType || 'Ticket').replace(' Ticket', '')}</span>
                                   : <span style={{ color: 'var(--text-3)' }}>—</span>}</td>
+                                <td>
+                                  <ExtendControl vacationId={v.id} currentExt={v.extensionDays || 0} />
+                                </td>
                                 <td><span className="badge-pill badge-active">Done</span></td>
                               </tr>
                             );
@@ -343,6 +346,12 @@ export default function ProfilePage({ params }) {
                               <span className="detail-mini-value">{v.ticketTaken
                                 ? <span className="tag ok">{v.ticketType || 'Ticket'}</span>
                                 : 'Not taken'}</span>
+                            </div>
+                            <div className="detail-mini-row" style={{ marginTop: 4 }}>
+                              <span className="detail-mini-label">Extension</span>
+                              <div className="detail-mini-value">
+                                <ExtendControl vacationId={v.id} currentExt={v.extensionDays || 0} />
+                              </div>
                             </div>
                             <div style={{ marginTop: 8 }}><span className="badge-pill badge-active">Done</span></div>
                           </div>
@@ -706,6 +715,65 @@ function DocCell({ label, date, status, empId, docType }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function ExtendControl({ vacationId, currentExt }) {
+  const { extendVacation } = useHR();
+  const [editing, setEditing] = useState(false);
+  const [extraDays, setExtraDays] = useState(String(currentExt || 0));
+
+  const handleSave = async () => {
+    const val = parseInt(extraDays) || 0;
+    await extendVacation(vacationId, val);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+        <input 
+          type="number" 
+          min="0" 
+          value={extraDays} 
+          onChange={e => setExtraDays(e.target.value)} 
+          style={{ width: 60, padding: '3px 6px', fontSize: '.75rem', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-app)', color: 'var(--text-1)' }} 
+        />
+        <button 
+          onClick={handleSave} 
+          className="btn btn-primary" 
+          style={{ padding: '3px 6px', fontSize: '.7rem', borderRadius: 4 }}
+        >
+          Save
+        </button>
+        <button 
+          onClick={() => setEditing(false)} 
+          className="btn btn-ghost" 
+          style={{ padding: '3px 6px', fontSize: '.7rem', borderRadius: 4 }}
+        >
+          &times;
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      {currentExt > 0 ? (
+        <span style={{ fontSize: '.75rem', fontWeight: 600, color: 'var(--amber)' }}>
+          +{currentExt}d extended
+        </span>
+      ) : (
+        <span style={{ color: 'var(--text-3)', fontSize: '.75rem' }}>—</span>
+      )}
+      <button 
+        type="button" 
+        onClick={() => setEditing(true)} 
+        style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '.7rem', fontWeight: 700 }}
+      >
+        {currentExt > 0 ? 'Edit' : 'Extend'}
+      </button>
     </div>
   );
 }

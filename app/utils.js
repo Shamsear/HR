@@ -149,10 +149,12 @@ export class AccrualEngine {
       }
       
       const leaveDays = dateDiffInDays(leaveStart, leaveEnd) + 1;
-      balance -= leaveDays;
+      const ext = Number(leave.extensionDays || 0);
+      balance -= (leaveDays + ext);
       
       const nextStart = new Date(leaveEnd);
-      nextStart.setDate(nextStart.getDate() + 1);
+      // If extended, next accrual starts after the extension ends
+      nextStart.setDate(nextStart.getDate() + 1 + ext);
       periodStart = nextStart;
     }
     

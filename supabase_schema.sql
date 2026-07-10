@@ -48,6 +48,7 @@ ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS unpaid_days NUMERIC DEFAUL
 ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS daily_rate NUMERIC DEFAULT 0;
 ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS net_salary NUMERIC DEFAULT 0;
 ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS leave_basis NUMERIC DEFAULT 0;
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS extension_days NUMERIC DEFAULT 0;
 
 -- 3. Salary History Table (Separate table for salary hikes)
 CREATE TABLE IF NOT EXISTS public.salary_history (

@@ -139,6 +139,7 @@ function generateSingleEmployee(index) {
     transportAllowance,
     phoneAllowance,
     foodAllowance,
+    otherAllowance: randomInt(0, 10) > 7 ? randomInt(500, 1500) : 0,
     vacations,
     salaryHistory,
     status: 'Active'
@@ -250,7 +251,8 @@ export function HRProvider({ children }) {
             unpaidDays: v.unpaid_days != null ? Number(v.unpaid_days) : null,
             dailyRate: v.daily_rate != null ? Number(v.daily_rate) : null,
             netSalary: v.net_salary != null ? Number(v.net_salary) : null,
-            leaveSalaryBasis: v.leave_basis != null ? Number(v.leave_basis) : null
+            leaveSalaryBasis: v.leave_basis != null ? Number(v.leave_basis) : null,
+            extensionDays: v.extension_days != null ? Number(v.extension_days) : 0
           }));
 
         const empHikes = hikes
@@ -770,7 +772,8 @@ export function HRProvider({ children }) {
                   unpaid_days: v.unpaidDays ?? 0,
                   daily_rate: v.dailyRate ?? 0,
                   net_salary: v.netSalary ?? 0,
-                  leave_basis: v.leaveSalaryBasis ?? 0
+                  leave_basis: v.leaveSalaryBasis ?? 0,
+                  extension_days: v.extensionDays ?? 0
                 });
               }
             }
@@ -955,6 +958,45 @@ export function HRProvider({ children }) {
     triggerNativeNotification(title, body);
   };
 
+  const extendVacation = async (vacationId, extraDays) => {
+    // 1. Fetch current vacation details to compute new unpaid counts
+    const { data: vac, error } = await supabase
+      .from('vacations')
+      .select('*')
+      .eq('id', vacationId)
+      .single();
+
+    if (error || !vac) throw new Error('Vacation record not found');
+
+    const newExt = Number(extraDays);
+    const newUnpaid = Number(vac.unpaid_days || 0) + newExt;
+
+    // 2. Update extension_days and unpaid_days in vacations table
+    await supabase
+      .from('vacations')
+      .update({
+        extension_days: newExt,
+        unpaid_days: newUnpaid
+      })
+      .eq('id', vacationId);
+
+    const title = 'Leave Extended';
+    const body = `Vacation ${vacationId} has been extended by ${newExt} extra unpaid days.`;
+
+    await supabase.from('notifications').insert({
+      id: Math.random().toString(36).substring(2, 9),
+      title,
+      body,
+      category: 'warning',
+      employee_id: vac.employee_id,
+      is_read: false
+    });
+
+    await logAuditAction('EXTEND_VACATION', vac.employee_id, { employeeId: vac.employee_id, vacationId, extensionDays: newExt });
+    await refreshData();
+    triggerNativeNotification(title, body);
+  };
+
   return (
     <HRContext.Provider value={{
       employees, notifications, search, setSearch, roleTypeFilter, setRoleTypeFilter,
@@ -963,7 +1005,7 @@ export function HRProvider({ children }) {
       processEOS, exportCSV, importJSON, clearNotifications, clearNotification,
       markAllRead, markNotificationRead, toggleTheme, handleEnablePush,
       drawerOpen, setDrawerOpen, isAuthenticated, login, logout,
-      auditLogs, revertAction, renewDocument,
+      auditLogs, revertAction, renewDocument, extendVacation,
       toast, confirm
     }}>
       {children}
