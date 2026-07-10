@@ -757,6 +757,55 @@ button { font-family: inherit; }
 }
 
 /* ============================
+   MOBILE CARD LIST (table → card)
+   ============================ */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Hide on desktop, show on mobile */
+.mobile-show { display: none; }
+/* Hide on mobile, show on desktop */
+.mobile-hide { display: block; }
+
+.detail-mini-card {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-mini-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: .82rem;
+}
+
+.detail-mini-label {
+  font: 600 .72rem/1 var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.detail-mini-value {
+  font: 500 .85rem/1.3 var(--font-body);
+  color: var(--text-1);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* ============================
    RESPONSIVE
    ============================ */
 @media (max-width:768px) {
@@ -866,6 +915,11 @@ button { font-family: inherit; }
     padding: 16px;
     box-shadow: var(--shadow-sm);
   }
+
+  /* Ledger tables → mini cards on mobile */
+  .ledger-wrap.mobile-hide { display: none; }
+  .mobile-show { display: flex; }
+  .mobile-card-list { gap: 10px; }
 
   /* Prevent iOS/Android zoom on input focus */
   .search-wrap input,

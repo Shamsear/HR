@@ -157,7 +157,7 @@ export default function ProfilePage({ params }) {
                   <Link href={`/employees/${emp.id}/vacation`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '.8rem' }}>+ Book Leave</Link>
                 )}
               </div>
-              <div className="ledger-wrap">
+              <div className="ledger-wrap mobile-hide">
                 <table className="tbl">
                   <thead>
                     <tr>
@@ -175,16 +175,12 @@ export default function ProfilePage({ params }) {
                       ? <tr><td colSpan={7} className="empty-state">No vacations logged.</td></tr>
                       : [...emp.vacations].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).map(v => {
                           const hasMetrics = typeof v.netSalary === 'number';
-                          
-                          // Fallback calculations for legacy records
                           const fallbackBasis = basic + phone + food + (emp.accommodationType === 'self' ? accom : 0);
                           const fallbackDaily = fallbackBasis / 30;
-                          
                           const daily = hasMetrics ? v.dailyRate : fallbackDaily;
                           const paid = hasMetrics ? v.paidDays : v.duration;
                           const excess = hasMetrics ? v.excessDays : 0;
                           const net = hasMetrics ? v.netSalary : (v.duration * daily);
-
                           return (
                             <tr key={v.id}>
                               <td>{v.startDate}</td>
@@ -207,6 +203,50 @@ export default function ProfilePage({ params }) {
                   </tbody>
                 </table>
               </div>
+
+              <div className="mobile-card-list mobile-show">
+                {emp.vacations.length === 0
+                  ? <div className="empty-state">No vacations logged.</div>
+                  : [...emp.vacations].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).map(v => {
+                      const hasMetrics = typeof v.netSalary === 'number';
+                      const fallbackBasis = basic + phone + food + (emp.accommodationType === 'self' ? accom : 0);
+                      const fallbackDaily = fallbackBasis / 30;
+                      const daily = hasMetrics ? v.dailyRate : fallbackDaily;
+                      const paid = hasMetrics ? v.paidDays : v.duration;
+                      const excess = hasMetrics ? v.excessDays : 0;
+                      const net = hasMetrics ? v.netSalary : (v.duration * daily);
+                      return (
+                        <div key={v.id} className="detail-mini-card">
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Period</span>
+                            <span className="detail-mini-value">{v.startDate} → {v.endDate}</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Duration</span>
+                            <span className="detail-mini-value">{v.duration} days</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Daily Rate</span>
+                            <span className="detail-mini-value">{daily.toFixed(2)} QAR</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Paid / Excess</span>
+                            <span className="detail-mini-value">
+                              <span style={{ color: 'var(--green)', fontWeight: 600 }}>{paid.toFixed(1)}d</span>
+                              {excess > 0 && <span style={{ color: 'var(--red)', fontWeight: 600 }}> / {excess.toFixed(1)}d excess</span>}
+                            </span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Payout</span>
+                            <span className="detail-mini-value" style={{ fontWeight: 700, color: net < 0 ? 'var(--red)' : 'var(--green)' }}>
+                              {net < 0 ? '−' : ''}{Math.abs(net).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR
+                            </span>
+                          </div>
+                          <div style={{ marginTop: 8 }}><span className="badge-pill badge-active">Done</span></div>
+                        </div>
+                      );
+                    })}
+              </div>
             </>
           )}
 
@@ -219,7 +259,7 @@ export default function ProfilePage({ params }) {
                   <Link href={`/employees/${emp.id}/hike`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '.8rem' }}>+ Apply Hike</Link>
                 )}
               </div>
-              <div className="ledger-wrap">
+              <div className="ledger-wrap mobile-hide">
                 <table className="tbl">
                   <thead><tr><th>Effective</th><th>Gross Change</th><th>% Increase</th><th>Reason</th></tr></thead>
                   <tbody>
@@ -240,6 +280,40 @@ export default function ProfilePage({ params }) {
                       })}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="mobile-card-list mobile-show">
+                {(!emp.salaryHistory || emp.salaryHistory.length === 0)
+                  ? <div className="empty-state">No hikes recorded.</div>
+                  : emp.salaryHistory.map(h => {
+                      const oldG = h.oldBasicSalary + (h.oldAllowances?.accommodation || 0) + (h.oldAllowances?.transport || 0) + (h.oldAllowances?.phone || 0) + (h.oldAllowances?.food || 0);
+                      const newG = h.newBasicSalary + (h.newAllowances?.accommodation || 0) + (h.newAllowances?.transport || 0) + (h.newAllowances?.phone || 0) + (h.newAllowances?.food || 0);
+                      const pct = ((newG - oldG) / oldG * 100).toFixed(1);
+                      return (
+                        <div key={h.id} className="detail-mini-card">
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Effective Date</span>
+                            <span className="detail-mini-value">{h.effectiveDate}</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Old Gross</span>
+                            <span className="detail-mini-value">{oldG.toLocaleString()} QAR</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">New Gross</span>
+                            <span className="detail-mini-value" style={{ color: 'var(--green)', fontWeight: 600 }}>{newG.toLocaleString()} QAR</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Increase</span>
+                            <span className="detail-mini-value" style={{ color: 'var(--green)', fontWeight: 700 }}>+{pct}%</span>
+                          </div>
+                          <div className="detail-mini-row">
+                            <span className="detail-mini-label">Reason</span>
+                            <span className="detail-mini-value">{h.reason}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
               </div>
             </>
           )}
