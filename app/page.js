@@ -73,8 +73,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="topbar-actions">
-          <button className="btn btn-ghost" onClick={() => { if (confirm('Reset database with 10 employees?')) seedDatabase(10); }}>Seed 10</button>
-          <button className="btn btn-ghost" onClick={() => { if (confirm('Reset database with 320 employees?')) seedDatabase(320); }}>Seed 320</button>
           <button className="btn btn-ghost" onClick={exportCSV}>Export</button>
           <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
             Import
@@ -192,6 +190,61 @@ export default function Dashboard() {
               })}
             </tbody>
           </table>
+        </div>
+
+        <div className="card-list-wrap mobile-cards">
+          {rows.length === 0 ? (
+            <div className="empty-state" style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-3)' }}>No employees match your filters.</div>
+          ) : rows.map(emp => {
+            const bal = AccrualEngine.calculateVacationBalance(emp, today);
+            const bc = bal < 0 ? 'neg' : bal < 5 ? 'warn' : 'pos';
+            const ini = emp.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+            const qE = getDocumentExpiryStatus(emp.qidExpiry, today);
+            const pE = getDocumentExpiryStatus(emp.passportExpiry, today);
+            const lE = emp.licenseNo ? getDocumentExpiryStatus(emp.licenseExpiry, today) : { status: 'active' };
+            const isExp = [qE, pE, lE].some(s => s.status === 'expired');
+            const isWrn = !isExp && [qE, pE, lE].some(s => s.status === 'expiring');
+            const ticket = calculateTicketEligibility(emp.roleType, emp.joiningDate, today);
+            return (
+              <div key={emp.id} className="employee-card">
+                <div className="emp-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div className="emp-cell">
+                    <div className="avatar">{ini}</div>
+                    <div>
+                      <div className="emp-name" style={{ fontWeight: 600 }}>{emp.name}</div>
+                      <div className="emp-role" style={{ fontSize: '.78rem', color: 'var(--text-3)' }}>{emp.roleType} · ID: {emp.id}</div>
+                    </div>
+                  </div>
+                  <span className={`badge-pill badge-${emp.status.toLowerCase().replace(' ', '-')}`}>{emp.status}</span>
+                </div>
+                <div className="emp-card-metrics" style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '.85rem', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-3)' }}>Qatar ID:</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                      {emp.qid}
+                      {isExp && <span className="doc-dot exp" title="Documents expired!">!</span>}
+                      {isWrn && <span className="doc-dot wrn" title="Documents expiring soon">!</span>}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-3)' }}>Ticket:</span>
+                    <span style={{ fontWeight: 600, color: ticket.eligible ? 'var(--green)' : 'var(--text-3)' }}>{ticket.type}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-3)' }}>Joining:</span>
+                    <span style={{ fontWeight: 500 }}>{emp.joiningDate}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-3)' }}>Leave Balance:</span>
+                    <span className={`bal ${bc}`} style={{ fontWeight: 600 }}>{bal.toFixed(1)}d</span>
+                  </div>
+                </div>
+                <div>
+                  <Link href={`/employees/${emp.id}`} className="btn btn-ghost" style={{ width: '100%', textAlign: 'center', justifyContent: 'center', padding: '10px 0' }}>View Profile →</Link>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="paging">

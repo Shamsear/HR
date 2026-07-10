@@ -740,6 +740,10 @@ button { font-family: inherit; }
 }
 .section-title:first-child { margin-top: 0; }
 
+.card-list-wrap {
+  display: none;
+}
+
 /* ============================
    RESPONSIVE
    ============================ */
@@ -770,6 +774,31 @@ button { font-family: inherit; }
   .form-footer .btn { width: 100%; }
 
   .drawer { max-width: 100%; }
+
+  .search-wrap input,
+  .field input,
+  .field select,
+  .field textarea,
+  .login-field input {
+    font-size: 16px !important;
+  }
+
+  .tbl-wrap {
+    display: none;
+  }
+  .card-list-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 0;
+  }
+  .employee-card {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 /* ============================
