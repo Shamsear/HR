@@ -604,7 +604,7 @@ export function HRProvider({ children }) {
     triggerNativeNotification(title, body);
   };
 
-  const applySalaryHike = async (empId, hikeRecord, newBasicVal, hikeAccomType, accomAllowance, transAllowance, phoneAllowance, foodAllowance) => {
+  const applySalaryHike = async (empId, hikeRecord, newBasicVal, hikeAccomType, accomAllowance, transAllowance, phoneAllowance, foodAllowance, otherAllowance) => {
     const target = employees.find(e => e.id === empId);
 
     // Update employee basic and allowances
@@ -614,7 +614,8 @@ export function HRProvider({ children }) {
       accommodation_allowance: accomAllowance,
       transport_allowance: transAllowance,
       phone_allowance: phoneAllowance,
-      food_allowance: foodAllowance
+      food_allowance: foodAllowance,
+      other_allowance: otherAllowance || 0
     }).eq('id', empId);
 
     // Insert salary history record
@@ -629,8 +630,8 @@ export function HRProvider({ children }) {
       reason: hikeRecord.reason
     });
 
-    const oldGross = target.basicSalary + (target.accommodationAllowance || 0) + (target.transportAllowance || 0) + (target.phoneAllowance || 0) + (target.foodAllowance || 0);
-    const newGross = newBasicVal + accomAllowance + transAllowance + phoneAllowance + foodAllowance;
+    const oldGross = target.basicSalary + (target.accommodationAllowance || 0) + (target.transportAllowance || 0) + (target.phoneAllowance || 0) + (target.foodAllowance || 0) + (target.otherAllowance || 0);
+    const newGross = newBasicVal + accomAllowance + transAllowance + phoneAllowance + foodAllowance + (otherAllowance || 0);
     const title = 'Salary Hike Applied';
     const body = `${target.name}: ${oldGross.toFixed(0)} → ${newGross.toFixed(0)} QAR (+${(newGross - oldGross).toFixed(0)}).`;
 
@@ -651,7 +652,8 @@ export function HRProvider({ children }) {
       oldAccommodationAllowance: target.accommodationAllowance,
       oldTransportAllowance: target.transportAllowance,
       oldPhoneAllowance: target.phoneAllowance,
-      oldFoodAllowance: target.foodAllowance
+      oldFoodAllowance: target.foodAllowance,
+      oldOtherAllowance: target.otherAllowance || 0
     });
 
     await refreshData();
@@ -846,7 +848,8 @@ export function HRProvider({ children }) {
           accommodation_allowance: details.oldAccommodationAllowance,
           transport_allowance: details.oldTransportAllowance,
           phone_allowance: details.oldPhoneAllowance,
-          food_allowance: details.oldFoodAllowance
+          food_allowance: details.oldFoodAllowance,
+          other_allowance: details.oldOtherAllowance || 0
         }).eq('id', empId);
 
         await supabase.from('salary_history').delete().eq('id', details.hikeId);

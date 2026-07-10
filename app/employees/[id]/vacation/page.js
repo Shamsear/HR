@@ -56,8 +56,9 @@ export default function VacationPage({ params }) {
     const basic = parseFloat(emp.basicSalary) || 0;
     const phone = parseFloat(emp.phoneAllowance) || 0;
     const food = parseFloat(emp.foodAllowance) || 0;
+    const other = parseFloat(emp.otherAllowance) || 0;
     const accom = emp.accommodationType === 'self' ? (parseFloat(emp.accommodationAllowance) || 0) : 0;
-    const basis = basic + phone + food + accom;
+    const basis = basic + phone + food + other + accom;
     const dailyRate = basis / 30;
 
     const availableBalance = Math.max(0, balance);

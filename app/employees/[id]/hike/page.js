@@ -18,6 +18,7 @@ export default function HikePage({ params }) {
   const [trans, setTrans] = useState('0');
   const [phone, setPhone] = useState('0');
   const [food, setFood] = useState('0');
+  const [otherAllowance, setOtherAllowance] = useState('0');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +31,7 @@ export default function HikePage({ params }) {
       setTrans(String(emp.transportAllowance));
       setPhone(String(emp.phoneAllowance));
       setFood(String(emp.foodAllowance || 0));
+      setOtherAllowance(String(emp.otherAllowance || 0));
     }
   }, [emp]);
 
@@ -52,13 +54,14 @@ export default function HikePage({ params }) {
     );
   }
 
-  const oldGross = emp.basicSalary + (emp.accommodationType === 'self' ? emp.accommodationAllowance : 0) + emp.transportAllowance + emp.phoneAllowance + (emp.foodAllowance || 0);
+  const oldGross = emp.basicSalary + (emp.accommodationType === 'self' ? emp.accommodationAllowance : 0) + emp.transportAllowance + emp.phoneAllowance + (emp.foodAllowance || 0) + (emp.otherAllowance || 0);
   const newGross =
     (parseFloat(basic) || 0) +
     (accomType === 'self' ? (parseFloat(accomAllow) || 0) : 0) +
     (parseFloat(trans) || 0) +
     (parseFloat(phone) || 0) +
-    (parseFloat(food) || 0);
+    (parseFloat(food) || 0) +
+    (parseFloat(otherAllowance) || 0);
   const delta = newGross - oldGross;
   const pct = oldGross > 0 ? (delta / oldGross * 100) : 0;
   const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
@@ -72,20 +75,21 @@ export default function HikePage({ params }) {
     const ta = parseFloat(trans) || 0;
     const pa = parseFloat(phone) || 0;
     const fa = parseFloat(food) || 0;
+    const oa = parseFloat(otherAllowance) || 0;
 
     const record = {
       id: `hike-${emp.id}-${Date.now()}`,
       effectiveDate: date,
       oldBasicSalary: emp.basicSalary,
       newBasicSalary: newBasic,
-      oldAllowances: { accommodation: emp.accommodationAllowance, transport: emp.transportAllowance, phone: emp.phoneAllowance, food: emp.foodAllowance || 0 },
-      newAllowances: { accommodation: aa, transport: ta, phone: pa, food: fa },
+      oldAllowances: { accommodation: emp.accommodationAllowance, transport: emp.transportAllowance, phone: emp.phoneAllowance, food: emp.foodAllowance || 0, other: emp.otherAllowance || 0 },
+      newAllowances: { accommodation: aa, transport: ta, phone: pa, food: fa, other: oa },
       reason: reason || 'Salary Adjustment'
     };
 
     setSaving(true);
     try {
-      await applySalaryHike(emp.id, record, newBasic, accomType, aa, ta, pa, fa);
+      await applySalaryHike(emp.id, record, newBasic, accomType, aa, ta, pa, fa, oa);
       toast(`Salary hike applied for ${emp.name}.`);
       router.push(`/employees/${emp.id}`);
     } catch (err) {
@@ -154,6 +158,7 @@ export default function HikePage({ params }) {
             <div className="field"><label>Transport</label><div className="input-suffix"><input type="number" min="0" value={trans} onChange={e => setTrans(e.target.value)} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
             <div className="field"><label>Phone</label><div className="input-suffix"><input type="number" min="0" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
             <div className="field"><label>Food Allowance</label><div className="input-suffix"><input type="number" min="0" value={food} onChange={e => setFood(e.target.value)} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
+            <div className="field"><label>Other Allowance</label><div className="input-suffix"><input type="number" min="0" value={otherAllowance} onChange={e => setOtherAllowance(e.target.value)} placeholder="0" inputMode="numeric" /><span className="suffix">QAR</span></div></div>
           </div>
 
           <div className="form-footer">
