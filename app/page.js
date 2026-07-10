@@ -100,7 +100,6 @@ export default function Dashboard() {
         <div className="topbar-actions">
           <Link href="/vacations" className="btn btn-ghost">Vacations</Link>
           <Link href="/calendar" className="btn btn-ghost">Calendar</Link>
-          <Link href="/payroll" className="btn btn-ghost">Payroll</Link>
           <button className="btn btn-ghost" onClick={() => { exportCSV(); toast('Employee data exported.'); }}>Export</button>
           <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
             Import
