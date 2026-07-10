@@ -136,3 +136,19 @@ CREATE POLICY "Allow public select on admins" ON public.admins FOR SELECT USING 
 CREATE POLICY "Allow public insert on admins" ON public.admins FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update on admins" ON public.admins FOR UPDATE USING (true);
 CREATE POLICY "Allow public delete on admins" ON public.admins FOR DELETE USING (true);
+
+-- ==========================================
+-- GRANT SCHEMA PERMISSIONS
+-- ==========================================
+-- Grant usage on schema to api roles
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+-- Grant privileges on all existing tables
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+
+-- Grant privileges on sequences (if any)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- Ensure future tables have these permissions
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated;
+

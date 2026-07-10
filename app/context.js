@@ -278,7 +278,7 @@ export function HRProvider({ children }) {
 
       return { assembledEmployees, mappedNotifs };
     } catch (error) {
-      console.error('[Supabase] Error refreshing data:', error);
+      console.error('[Supabase] Error refreshing data:', error.message || error);
       return { assembledEmployees: [], mappedNotifs: [] };
     }
   }, []);
@@ -435,10 +435,6 @@ export function HRProvider({ children }) {
     }
 
     const initSetup = async () => {
-      const { data: emps } = await supabase.from('employees').select('id');
-      if (!emps || emps.length === 0) {
-        await dbSeed(10);
-      }
       const { assembledEmployees } = await refreshData();
       await runExpiryChecks(assembledEmployees);
       await refreshData();
