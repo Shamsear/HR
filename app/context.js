@@ -161,6 +161,38 @@ export function HRProvider({ children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [toasts, setToasts] = useState([]);
+  const [confirmState, setConfirmState] = useState(null);
+
+  const dismissToast = useCallback((id) => {
+    setToasts(t => t.filter(x => x.id !== id));
+  }, []);
+
+  const toast = useCallback((message, type = 'success') => {
+    const id = Math.random().toString(36).slice(2, 9);
+    setToasts(t => [...t, { id, message, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4200);
+    return id;
+  }, []);
+
+  // Promise-based confirm dialog — replaces window.confirm
+  const confirm = useCallback((opts) => {
+    const o = typeof opts === 'string' ? { message: opts } : (opts || {});
+    return new Promise((resolve) => {
+      setConfirmState({
+        title: o.title || 'Are you sure?',
+        message: o.message || '',
+        confirmLabel: o.confirmLabel || 'Confirm',
+        cancelLabel: o.cancelLabel || 'Cancel',
+        danger: !!o.danger,
+        resolve,
+      });
+    });
+  }, []);
+
+  const closeConfirm = useCallback((result) => {
+    setConfirmState(s => { if (s) s.resolve(result); return null; });
+  }, []);
 
   const refreshData = useCallback(async () => {
     try {
@@ -427,7 +459,7 @@ export function HRProvider({ children }) {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
       setDarkMode(true);
-      document.body.classList.add('dark-mode');
+      document.documentElement.classList.add('dark-mode');
     }
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
@@ -702,11 +734,12 @@ export function HRProvider({ children }) {
           }
           await refreshData();
           setReady(true);
+          toast('Data imported successfully.');
         } else {
-          alert('Invalid file format.');
+          toast('Invalid file format.', 'error');
         }
       } catch (err) {
-        alert('JSON parse failed.');
+        toast('JSON parse failed.', 'error');
         setReady(true);
       }
     };
@@ -790,7 +823,7 @@ export function HRProvider({ children }) {
       return true;
     } catch (err) {
       console.error('[Supabase] Revert action failed:', err);
-      alert(`Revert failed: ${err.message}`);
+      toast(`Revert failed: ${err.message}`, 'error');
       return false;
     }
   };
@@ -798,14 +831,15 @@ export function HRProvider({ children }) {
   const toggleTheme = () => {
     const next = !darkMode;
     setDarkMode(next);
-    document.body.classList.toggle('dark-mode', next);
+    document.documentElement.classList.toggle('dark-mode', next);
     localStorage.setItem('theme', next ? 'dark' : 'light');
   };
 
   const handleEnablePush = async () => {
-    if (!('Notification' in window)) { alert('Notifications not supported.'); return; }
+    if (!('Notification' in window)) { toast('Notifications not supported.', 'error'); return; }
     const perm = await Notification.requestPermission();
-    if (perm === 'granted') setPushEnabled(true);
+    if (perm === 'granted') { setPushEnabled(true); toast('Desktop notifications enabled.'); }
+    else toast('Notification permission denied.', 'error');
   };
 
   const hashPassword = async (password) => {
@@ -846,10 +880,63 @@ export function HRProvider({ children }) {
       processEOS, exportCSV, importJSON, clearNotifications, clearNotification,
       markAllRead, markNotificationRead, toggleTheme, handleEnablePush,
       drawerOpen, setDrawerOpen, isAuthenticated, login, logout,
-      auditLogs, revertAction
+      auditLogs, revertAction,
+      toast, confirm
     }}>
       {children}
+      <Toaster toasts={toasts} dismiss={dismissToast} />
+      <ConfirmDialog state={confirmState} close={closeConfirm} />
     </HRContext.Provider>
+  );
+}
+
+function Toaster({ toasts, dismiss }) {
+  const icon = {
+    success: <path d="M20 6 9 17l-5-5" />,
+    error: <><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></>,
+    info: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></>,
+  };
+  return (
+    <div className="toast-stack" role="region" aria-live="polite">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast toast-${t.type}`} role="status">
+          <svg className="toast-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            {icon[t.type] || icon.info}
+          </svg>
+          <span className="toast-msg">{t.message}</span>
+          <button className="toast-x" onClick={() => dismiss(t.id)} aria-label="Dismiss">&times;</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ConfirmDialog({ state, close }) {
+  useEffect(() => {
+    if (!state) return;
+    const onKey = (e) => { if (e.key === 'Escape') close(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [state, close]);
+
+  return (
+    <div className={`confirm-bg ${state ? 'open' : ''}`} onClick={() => close(false)}>
+      {state && (
+        <div className="confirm-card" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+          <div className={`confirm-icon ${state.danger ? 'danger' : ''}`}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <h3 className="confirm-title">{state.title}</h3>
+          {state.message && <p className="confirm-msg">{state.message}</p>}
+          <div className="confirm-actions">
+            <button className="btn btn-ghost" onClick={() => close(false)}>{state.cancelLabel}</button>
+            <button className={`btn ${state.danger ? 'btn-danger' : 'btn-primary'}`} onClick={() => close(true)} autoFocus>{state.confirmLabel}</button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

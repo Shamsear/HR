@@ -4,6 +4,7 @@ import { HRProvider } from "./context";
 import PWARegistry from "./PWARegistry";
 import MobileNav from "./MobileNav";
 import AuthGuard from "./AuthGuard";
+import AppFrame from "./AppFrame";
 
 export const metadata = {
   title: "Antigravity HR Portal - Qatar Vacation & EOS Tracker",
@@ -14,6 +15,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&d)){document.documentElement.classList.add('dark-mode');}}catch(e){}})();`,
+          }}
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -22,7 +28,9 @@ export default function RootLayout({ children }) {
       <body>
         <HRProvider>
           <AuthGuard>
-            {children}
+            <AppFrame>
+              {children}
+            </AppFrame>
           </AuthGuard>
           <MobileNav />
           <PWARegistry />

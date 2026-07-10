@@ -7,7 +7,7 @@ import { useHR } from '../../../context';
 
 export default function HikePage({ params }) {
   const { id } = use(params);
-  const { employees, applySalaryHike, ready } = useHR();
+  const { employees, applySalaryHike, ready, toast } = useHR();
   const router = useRouter();
   const emp = useMemo(() => employees.find(e => e.id === id) || null, [employees, id]);
 
@@ -19,6 +19,7 @@ export default function HikePage({ params }) {
   const [phone, setPhone] = useState('0');
   const [food, setFood] = useState('0');
   const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Prefill with current values once employee loads
   useMemo(() => {
@@ -47,10 +48,10 @@ export default function HikePage({ params }) {
     );
   }
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     const newBasic = parseFloat(basic);
-    if (!date || isNaN(newBasic)) { alert('Fill effective date and new basic salary.'); return; }
+    if (!date || isNaN(newBasic)) { toast('Fill effective date and new basic salary.', 'error'); return; }
 
     const aa = accomType === 'self' ? (parseFloat(accomAllow) || 0) : 0;
     const ta = parseFloat(trans) || 0;
@@ -67,8 +68,15 @@ export default function HikePage({ params }) {
       reason: reason || 'Salary Adjustment'
     };
 
-    applySalaryHike(emp.id, record, newBasic, accomType, aa, ta, pa, fa);
-    router.push(`/employees/${emp.id}`);
+    setSaving(true);
+    try {
+      await applySalaryHike(emp.id, record, newBasic, accomType, aa, ta, pa, fa);
+      toast(`Salary hike applied for ${emp.name}.`);
+      router.push(`/employees/${emp.id}`);
+    } catch (err) {
+      setSaving(false);
+      toast('Failed to apply hike.', 'error');
+    }
   };
 
   return (
@@ -108,7 +116,7 @@ export default function HikePage({ params }) {
 
           <div className="form-footer">
             <Link href={`/employees/${emp.id}`} className="btn btn-ghost">Cancel</Link>
-            <button type="submit" className="btn btn-primary">Apply Hike</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Applying…' : 'Apply Hike'}</button>
           </div>
         </form>
       </div>

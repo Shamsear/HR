@@ -8,9 +8,10 @@ import { AccrualEngine, formatDate } from '../../../utils';
 
 export default function EOSPage({ params }) {
   const { id } = use(params);
-  const { employees, processEOS, ready } = useHR();
+  const { employees, processEOS, ready, toast, confirm } = useHR();
   const router = useRouter();
   const [date, setDate] = useState(() => formatDate(new Date()));
+  const [saving, setSaving] = useState(false);
   const emp = useMemo(() => employees.find(e => e.id === id) || null, [employees, id]);
 
   const eos = useMemo(() => {
@@ -33,11 +34,24 @@ export default function EOSPage({ params }) {
     );
   }
 
-  const confirm = () => {
+  const handleTerminate = async () => {
     if (!eos) return;
-    if (!window.confirm(`Confirm EOS for ${emp.name}? Net payout: ${eos.netPayout.toFixed(2)} QAR. This marks the employee as Terminated.`)) return;
-    processEOS(emp.id, date, eos);
-    router.push('/');
+    const ok = await confirm({
+      title: 'Confirm End of Service',
+      message: `Process EOS for ${emp.name}? Net payout: ${eos.netPayout.toFixed(2)} QAR. This marks the employee as Terminated.`,
+      confirmLabel: 'Terminate',
+      danger: true,
+    });
+    if (!ok) return;
+    setSaving(true);
+    try {
+      await processEOS(emp.id, date, eos);
+      toast(`${emp.name} terminated · Net payout ${eos.netPayout.toLocaleString()} QAR`);
+      router.push('/');
+    } catch (err) {
+      setSaving(false);
+      toast('Failed to process EOS.', 'error');
+    }
   };
 
   return (
@@ -142,7 +156,7 @@ export default function EOSPage({ params }) {
 
           <div className="form-footer">
             <Link href={`/employees/${emp.id}`} className="btn btn-ghost">Cancel</Link>
-            <button className="btn btn-danger" onClick={confirm} disabled={!eos}>Confirm & Terminate</button>
+            <button className="btn btn-danger" onClick={handleTerminate} disabled={!eos || saving}>{saving ? 'Processing…' : 'Confirm & Terminate'}</button>
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ const MSDAY = 86400000;
 
 export default function ProfilePage({ params }) {
   const { id } = use(params);
-  const { employees, processEOS, ready } = useHR();
+  const { employees, processEOS, ready, toast, confirm } = useHR();
   const [tab, setTab] = useState('general');
   const [eosDate, setEosDate] = useState(() => formatDate(new Date()));
   const today = useMemo(() => formatDate(new Date()), []);
@@ -59,19 +59,43 @@ export default function ProfilePage({ params }) {
   return (
     <div className="app-shell">
       <div className="page-card">
-        {/* Header */}
-        <div className="page-head">
-          <div>
-            <h2 className="page-head-title">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              {emp.name}
-            </h2>
-            <div className="page-head-sub">
-              {emp.id} · {emp.roleType} Category ·{' '}
-              <span className={`badge-pill badge-${emp.status.toLowerCase().replace(' ', '-')}`}>{emp.status}</span>
+        {/* Hero */}
+        <div className="profile-hero">
+          <div className="profile-hero-top">
+            <div className="profile-id">
+              <div className="profile-avatar">{emp.name.split(' ').map(w => w[0]).join('').slice(0, 2)}</div>
+              <div style={{ minWidth: 0 }}>
+                <div className="profile-name">{emp.name}</div>
+                <div className="profile-meta">
+                  <span>{emp.id}</span>
+                  <span className="dot" />
+                  <span>{emp.roleType} Category</span>
+                  <span className="dot" />
+                  <span className={`badge-pill badge-${emp.status.toLowerCase().replace(' ', '-')}`}>{emp.status}</span>
+                </div>
+              </div>
+            </div>
+            <Link href="/" className="btn btn-ghost">← Dashboard</Link>
+          </div>
+
+          <div className="profile-metrics">
+            <div className="pmetric">
+              <span>Leave Balance</span>
+              <strong className={balance < 0 ? 'neg' : balance < 5 ? 'warn' : 'pos'}>{balance.toFixed(1)}d</strong>
+            </div>
+            <div className="pmetric">
+              <span>Tenure</span>
+              <strong>{tenure.years}y {tenure.months}m</strong>
+            </div>
+            <div className="pmetric">
+              <span>Gross / mo</span>
+              <strong>{(gross / 1000).toFixed(1)}k</strong>
+            </div>
+            <div className="pmetric">
+              <span>Documents</span>
+              <strong className={hasDanger ? 'neg' : warnings.length ? 'warn' : 'pos'}>{hasDanger ? 'Expired' : warnings.length ? 'Expiring' : 'Valid'}</strong>
             </div>
           </div>
-          <Link href="/" className="btn btn-ghost">← Dashboard</Link>
         </div>
 
         <div className="page-body">
@@ -89,10 +113,10 @@ export default function ProfilePage({ params }) {
           )}
 
           {/* Tabs */}
-          <div className="tabs">
+          <div className="seg">
             {['general', 'vacations', 'salary', 'accrual', 'eos'].map(t => (
-              <button key={t} className={`tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
-                {t === 'general' ? 'General Info' : t === 'vacations' ? 'Vacation Log' : t === 'salary' ? 'Salary History' : t === 'accrual' ? 'Accrual Math' : 'End of Service (EOS)'}
+              <button key={t} className={`seg-btn ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
+                {t === 'general' ? 'General' : t === 'vacations' ? 'Vacations' : t === 'salary' ? 'Salary' : t === 'accrual' ? 'Accrual' : 'End of Service'}
               </button>
             ))}
           </div>
@@ -422,10 +446,17 @@ export default function ProfilePage({ params }) {
                       ? `Day after Last Vacation Return (${lastReturnDate})`
                       : `Joining Date (${emp.joiningDate})`;
 
-                    const confirmTermination = () => {
-                      if (!window.confirm(`Confirm End of Service for ${emp.name}? Net payout: ${eos.netPayout.toLocaleString()} QAR. This profile will be marked as Terminated.`)) return;
-                      processEOS(emp.id, eosDate, eos);
-                      window.location.reload();
+                    const confirmTermination = async () => {
+                      const ok = await confirm({
+                        title: 'Confirm End of Service',
+                        message: `Process EOS for ${emp.name}? Net payout: ${eos.netPayout.toLocaleString()} QAR. This profile will be marked as Terminated.`,
+                        confirmLabel: 'Terminate',
+                        danger: true,
+                      });
+                      if (!ok) return;
+                      await processEOS(emp.id, eosDate, eos);
+                      toast(`${emp.name} terminated · Net payout ${eos.netPayout.toLocaleString()} QAR`);
+                      setTab('general');
                     };
 
                     return (

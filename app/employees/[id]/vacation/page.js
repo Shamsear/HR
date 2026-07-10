@@ -8,10 +8,11 @@ import { AccrualEngine, dateDiffInDays, parseDate, formatDate } from '../../../u
 
 export default function VacationPage({ params }) {
   const { id } = use(params);
-  const { employees, bookVacation, ready } = useHR();
+  const { employees, bookVacation, ready, toast } = useHR();
   const router = useRouter();
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const emp = useMemo(() => employees.find(e => e.id === id) || null, [employees, id]);
 
@@ -33,18 +34,18 @@ export default function VacationPage({ params }) {
   const calculationDate = start ? start : formatDate(new Date());
   const balance = AccrualEngine.calculateVacationBalance(emp, calculationDate);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!start || !end) { alert('Both dates are required.'); return; }
+    if (!start || !end) { toast('Both dates are required.', 'error'); return; }
     const s = parseDate(start), en = parseDate(end);
-    if (en < s) { alert('End date must be on or after start date.'); return; }
+    if (en < s) { toast('End date must be on or after start date.', 'error'); return; }
 
     const dur = dateDiffInDays(s, en) + 1;
     const overlap = emp.vacations.some(v => {
       const vs = parseDate(v.startDate), ve = parseDate(v.endDate);
       return s <= ve && en >= vs;
     });
-    if (overlap) { alert('Overlaps with existing leave!'); return; }
+    if (overlap) { toast('This overlaps with existing leave.', 'error'); return; }
 
     const basic = parseFloat(emp.basicSalary) || 0;
     const phone = parseFloat(emp.phoneAllowance) || 0;
@@ -60,16 +61,23 @@ export default function VacationPage({ params }) {
     const deductionAmount = excessDays * dailyRate;
     const netSalary = paidAmount - deductionAmount;
 
-    bookVacation(emp.id, start, end, dur, {
-      leaveSalaryBasis: basis,
-      dailyRate,
-      paidDays,
-      excessDays,
-      paidAmount,
-      deductionAmount,
-      netSalary
-    });
-    router.push(`/employees/${emp.id}`);
+    setSaving(true);
+    try {
+      await bookVacation(emp.id, start, end, dur, {
+        leaveSalaryBasis: basis,
+        dailyRate,
+        paidDays,
+        excessDays,
+        paidAmount,
+        deductionAmount,
+        netSalary
+      });
+      toast(`${dur}-day leave booked for ${emp.name}.`);
+      router.push(`/employees/${emp.id}`);
+    } catch (err) {
+      setSaving(false);
+      toast('Failed to book leave.', 'error');
+    }
   };
 
   return (
@@ -167,7 +175,7 @@ export default function VacationPage({ params }) {
 
             <div className="form-footer">
               <Link href={`/employees/${emp.id}`} className="btn btn-ghost">Cancel</Link>
-              <button type="submit" className="btn btn-primary">Book Vacation</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Booking…' : 'Book Vacation'}</button>
             </div>
           </form>
         </div>

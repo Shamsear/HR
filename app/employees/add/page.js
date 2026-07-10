@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { useHR } from '../../context';
 
 export default function AddEmployeePage() {
-  const { addEmployee } = useHR();
+  const { addEmployee, toast } = useHR();
   const router = useRouter();
+  const [saving, setSaving] = useState(false);
 
   const [f, setF] = useState({
     name: '', qid: '', qidExpiry: '', passport: '', passportExpiry: '',
@@ -17,10 +18,11 @@ export default function AddEmployeePage() {
 
   const set = (key) => (e) => setF(p => ({ ...p, [key]: e.target.value }));
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    if (!f.name || !f.qid || !f.joining || !f.basic) { alert('Fill all required fields.'); return; }
+    if (!f.name || !f.qid || !f.joining || !f.basic) { toast('Please fill all required fields.', 'error'); return; }
 
+    setSaving(true);
     const newEmp = {
       id: `EMP-${Date.now().toString().slice(-4)}`,
       name: f.name, qid: f.qid, qidExpiry: f.qidExpiry,
@@ -37,8 +39,14 @@ export default function AddEmployeePage() {
       vacations: [], salaryHistory: [], status: 'Active'
     };
 
-    addEmployee(newEmp);
-    router.push('/');
+    try {
+      await addEmployee(newEmp);
+      toast(`${f.name} added successfully.`);
+      router.push('/');
+    } catch (err) {
+      setSaving(false);
+      toast('Failed to create employee.', 'error');
+    }
   };
 
   return (
@@ -100,7 +108,7 @@ export default function AddEmployeePage() {
 
           <div className="form-footer">
             <Link href="/" className="btn btn-ghost">Cancel</Link>
-            <button type="submit" className="btn btn-primary">Create Profile</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Profile'}</button>
           </div>
         </form>
       </div>

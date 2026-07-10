@@ -12,7 +12,7 @@ export default function Dashboard() {
     darkMode, ready, seedDatabase, exportCSV, importJSON,
     clearNotifications, clearNotification, markAllRead,
     toggleTheme, handleEnablePush, drawerOpen, setDrawerOpen, logout,
-    auditLogs, revertAction
+    auditLogs, revertAction, toast, confirm
   } = useHR();
   const [drawerTab, setDrawerTab] = useState('alerts');
   const PAGE = 10;
@@ -63,17 +63,17 @@ export default function Dashboard() {
 
   return (
     <div className="app-shell">
-      {/* ── TOPBAR ── */}
+      {/* ── TOPBAR / PAGE HEADER ── */}
       <div className="topbar">
         <div className="topbar-brand">
-          <div className="topbar-logo">HR</div>
+          <div className="topbar-logo only-mobile">HR</div>
           <div className="topbar-text">
-            <h1>HR Portal</h1>
-            <span>Qatar — Vacation & End-of-Service Management</span>
+            <h1>Dashboard</h1>
+            <span>Qatar — Vacation &amp; End-of-Service Management</span>
           </div>
         </div>
         <div className="topbar-actions">
-          <button className="btn btn-ghost" onClick={exportCSV}>Export</button>
+          <button className="btn btn-ghost" onClick={() => { exportCSV(); toast('Employee data exported.'); }}>Export</button>
           <label className="btn btn-ghost" style={{ cursor: 'pointer' }}>
             Import
             <input type="file" accept=".json" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) importJSON(e.target.files[0]); }} />
@@ -85,13 +85,13 @@ export default function Dashboard() {
             {unread > 0 && <span className="badge">{unread}</span>}
           </button>
 
-          <button className="btn-icon" onClick={toggleTheme} title="Toggle theme">
+          <button className="btn-icon only-mobile" onClick={toggleTheme} title="Toggle theme">
             {darkMode
               ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
               : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3a9 9 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>}
           </button>
 
-          <button className="btn-icon" onClick={logout} title="Sign Out">
+          <button className="btn-icon only-mobile" onClick={logout} title="Sign Out">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
@@ -332,9 +332,19 @@ export default function Dashboard() {
                         {l.reverted ? (
                           <span style={{ fontSize: '.72rem', color: 'var(--text-3)', fontWeight: 600 }}>Reverted</span>
                         ) : (
-                          <button 
-                            onClick={() => revertAction(l.id)} 
-                            className="btn btn-ghost" 
+                          <button
+                            onClick={async () => {
+                              const ok = await confirm({
+                                title: 'Revert this action?',
+                                message: 'This will undo the recorded change. It cannot be undone.',
+                                confirmLabel: 'Revert',
+                                danger: true,
+                              });
+                              if (!ok) return;
+                              const done = await revertAction(l.id);
+                              if (done) toast('Action reverted.');
+                            }}
+                            className="btn btn-ghost"
                             style={{ 
                               padding: '4px 10px', 
                               fontSize: '.7rem', 
