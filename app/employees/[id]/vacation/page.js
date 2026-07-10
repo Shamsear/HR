@@ -4,7 +4,7 @@ import { use, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useHR } from '../../../context';
-import { AccrualEngine, dateDiffInDays, parseDate, formatDate } from '../../../utils';
+import { AccrualEngine, dateDiffInDays, parseDate, formatDate, calculateTicketEligibility } from '../../../utils';
 
 export default function VacationPage({ params }) {
   const { id } = use(params);
@@ -12,6 +12,7 @@ export default function VacationPage({ params }) {
   const router = useRouter();
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [ticketTaken, setTicketTaken] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const emp = useMemo(() => employees.find(e => e.id === id) || null, [employees, id]);
@@ -20,11 +21,15 @@ export default function VacationPage({ params }) {
 
   if (!emp) {
     return (
-      <div className="app-shell" style={{ paddingTop: 80 }}>
-        <div className="page-card" style={{ maxWidth: 500, textAlign: 'center' }}>
-          <div className="page-body">
-            <h2 style={{ marginBottom: 12 }}>Not Found</h2>
-            <Link href="/" className="btn btn-primary">Dashboard</Link>
+      <div className="app-shell">
+        <div className="page-card" style={{ maxWidth: 520, margin: '40px auto 0' }}>
+          <div className="empty-rich">
+            <div className="empty-rich-ico">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            </div>
+            <h3>Employee not found</h3>
+            <p>No employee exists with ID <strong>{id}</strong>.</p>
+            <Link href="/" className="btn btn-primary">← Back to Dashboard</Link>
           </div>
         </div>
       </div>
@@ -33,6 +38,7 @@ export default function VacationPage({ params }) {
 
   const calculationDate = start ? start : formatDate(new Date());
   const balance = AccrualEngine.calculateVacationBalance(emp, calculationDate);
+  const ticket = calculateTicketEligibility(emp.roleType, emp.joiningDate, calculationDate);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -56,10 +62,9 @@ export default function VacationPage({ params }) {
 
     const availableBalance = Math.max(0, balance);
     const paidDays = Math.min(dur, availableBalance);
-    const excessDays = Math.max(0, dur - availableBalance);
+    const unpaidDays = Math.max(0, dur - availableBalance);
     const paidAmount = paidDays * dailyRate;
-    const deductionAmount = excessDays * dailyRate;
-    const netSalary = paidAmount - deductionAmount;
+    const netSalary = paidAmount;
 
     setSaving(true);
     try {
@@ -67,12 +72,13 @@ export default function VacationPage({ params }) {
         leaveSalaryBasis: basis,
         dailyRate,
         paidDays,
-        excessDays,
+        unpaidDays,
         paidAmount,
-        deductionAmount,
-        netSalary
+        netSalary,
+        ticketType: ticket.type,
+        ticketTaken: ticket.eligible && ticketTaken
       });
-      toast(`${dur}-day leave booked for ${emp.name}.`);
+      toast(`${dur}-day leave booked${unpaidDays > 0 ? ` (${unpaidDays} unpaid)` : ''} for ${emp.name}.`);
       router.push(`/employees/${emp.id}`);
     } catch (err) {
       setSaving(false);
@@ -124,10 +130,8 @@ export default function VacationPage({ params }) {
                   {estimatedDuration > 0 && (() => {
                     const availableBalance = Math.max(0, balance);
                     const paidDays = Math.min(estimatedDuration, availableBalance);
-                    const excessDays = Math.max(0, estimatedDuration - availableBalance);
+                    const unpaidDays = Math.max(0, estimatedDuration - availableBalance);
                     const paidAmount = paidDays * dailyRate;
-                    const deductionAmount = excessDays * dailyRate;
-                    const netSalary = paidAmount - deductionAmount;
 
                     return (
                       <>
@@ -135,10 +139,10 @@ export default function VacationPage({ params }) {
                           <span>Estimated Leave Salary ({estimatedDuration}d)</span>
                         </div>
                         <div className="calc-row pos"><span className="lbl">Paid Days ({paidDays.toFixed(1)}d × {dailyRate.toFixed(2)})</span><span className="val">+{paidAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
-                        {excessDays > 0 && (
-                          <div className="calc-row neg"><span className="lbl">Excess Deducted ({excessDays.toFixed(1)}d × {dailyRate.toFixed(2)})</span><span className="val">−{deductionAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
+                        {unpaidDays > 0 && (
+                          <div className="calc-row"><span className="lbl">Unpaid Leave</span><span className="val" style={{ color: 'var(--amber)' }}>{unpaidDays.toFixed(1)} days</span></div>
                         )}
-                        <div className="calc-row div total accent"><span>Net Estimated Salary</span><span className="val">{netSalary < 0 ? '−' : ''}{Math.abs(netSalary).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
+                        <div className="calc-row div total accent"><span>Net Estimated Salary</span><span className="val">{paidAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR</span></div>
                       </>
                     );
                   })()}
@@ -147,13 +151,36 @@ export default function VacationPage({ params }) {
             );
           })()}
 
+          <div className="ticket-card">
+            <div className={`ticket-ico ${ticket.eligible ? '' : 'muted'}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2M13 17v2M13 11v2" /></svg>
+            </div>
+            <div className="ticket-info">
+              <div className="k">Annual Air Ticket</div>
+              <div className="v">
+                {ticket.type}
+                <span className={`tag ${ticket.eligible ? 'ok' : 'muted'}`}>{ticket.eligible ? 'Eligible' : 'Not eligible yet'}</span>
+              </div>
+            </div>
+            <label className="switch" title={ticket.eligible ? '' : 'Employee is not eligible for a ticket yet'}>
+              <input
+                type="checkbox"
+                checked={ticket.eligible && ticketTaken}
+                disabled={!ticket.eligible}
+                onChange={e => setTicketTaken(e.target.checked)}
+              />
+              <span className="switch-track" />
+              <span className="switch-label">Taking this ticket</span>
+            </label>
+          </div>
+
           <form onSubmit={submit}>
             <div className="form-grid">
-              <div className="field"><label>Start Date *</label><input type="date" value={start} onChange={e => setStart(e.target.value)} required /></div>
-              <div className="field"><label>End Date *</label><input type="date" value={end} onChange={e => setEnd(e.target.value)} required /></div>
+              <div className="field"><label>Start Date <span className="req">*</span></label><input type="date" value={start} onChange={e => setStart(e.target.value)} required /></div>
+              <div className="field"><label>End Date <span className="req">*</span></label><input type="date" value={end} min={start || undefined} onChange={e => setEnd(e.target.value)} required /></div>
             </div>
 
-            <p style={{ fontSize: '.78rem', color: 'var(--text-3)', marginTop: 12, lineHeight: 1.5 }}>
+            <p className="form-note">
               Booking leave beyond the accrued balance will result in a negative balance carry-forward.
             </p>
 

@@ -29,8 +29,24 @@ CREATE TABLE IF NOT EXISTS public.vacations (
     end_date TEXT NOT NULL,
     duration NUMERIC NOT NULL,
     status TEXT NOT NULL DEFAULT 'Completed', -- 'Pending', 'Completed'
+    ticket_type TEXT DEFAULT 'None',           -- 'Two-Way Ticket', 'One-Way Ticket', 'None'
+    ticket_taken BOOLEAN DEFAULT false,        -- whether the annual air ticket was taken this leave
+    paid_days NUMERIC DEFAULT 0,               -- days paid from accrued balance
+    unpaid_days NUMERIC DEFAULT 0,             -- excess days taken as unpaid leave
+    daily_rate NUMERIC DEFAULT 0,              -- leave salary daily rate
+    net_salary NUMERIC DEFAULT 0,              -- paid leave salary (never negative)
+    leave_basis NUMERIC DEFAULT 0,             -- monthly leave salary basis
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migration for existing installs: add ticket columns if missing
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS ticket_type TEXT DEFAULT 'None';
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS ticket_taken BOOLEAN DEFAULT false;
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS paid_days NUMERIC DEFAULT 0;
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS unpaid_days NUMERIC DEFAULT 0;
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS daily_rate NUMERIC DEFAULT 0;
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS net_salary NUMERIC DEFAULT 0;
+ALTER TABLE public.vacations ADD COLUMN IF NOT EXISTS leave_basis NUMERIC DEFAULT 0;
 
 -- 3. Salary History Table (Separate table for salary hikes)
 CREATE TABLE IF NOT EXISTS public.salary_history (

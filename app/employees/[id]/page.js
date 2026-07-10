@@ -19,12 +19,15 @@ export default function ProfilePage({ params }) {
 
   if (!emp) {
     return (
-      <div className="app-shell" style={{ paddingTop: 80 }}>
-        <div className="page-card" style={{ maxWidth: 500, textAlign: 'center' }}>
-          <div className="page-body">
-            <h2 style={{ marginBottom: 12 }}>Employee Not Found</h2>
-            <p style={{ color: 'var(--text-3)', marginBottom: 24 }}>No employee with ID <strong>{id}</strong>.</p>
-            <Link href="/" className="btn btn-primary">Dashboard</Link>
+      <div className="app-shell">
+        <div className="page-card" style={{ maxWidth: 520, margin: '40px auto 0' }}>
+          <div className="empty-rich">
+            <div className="empty-rich-ico">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            </div>
+            <h3>Employee not found</h3>
+            <p>No employee exists with ID <strong>{id}</strong>. It may have been removed.</p>
+            <Link href="/" className="btn btn-primary">← Back to Dashboard</Link>
           </div>
         </div>
       </div>
@@ -75,7 +78,15 @@ export default function ProfilePage({ params }) {
                 </div>
               </div>
             </div>
-            <Link href="/" className="btn btn-ghost">← Dashboard</Link>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              {emp.status !== 'Terminated' && (
+                <Link href={`/employees/${emp.id}/edit`} className="btn btn-ghost">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" /></svg>
+                  Edit
+                </Link>
+              )}
+              <Link href="/" className="btn btn-ghost">← Dashboard</Link>
+            </div>
           </div>
 
           <div className="profile-metrics">
@@ -127,25 +138,30 @@ export default function ProfilePage({ params }) {
               <div className="detail-grid">
                 <Cell label="Full Name" value={emp.name} />
                 <Cell label="Qatar ID (QID)" value={emp.qid} />
-                <Cell label="QID Expiry" value={emp.qidExpiry} />
+                <DocCell label="QID Expiry" date={emp.qidExpiry} status={qS.status} />
                 <Cell label="Passport" value={emp.passportNo} />
-                <Cell label="Passport Expiry" value={emp.passportExpiry} />
+                <DocCell label="Passport Expiry" date={emp.passportExpiry} status={pS.status} />
                 <Cell label="Driving License" value={emp.licenseNo || '—'} />
-                <Cell label="License Expiry" value={emp.licenseExpiry || '—'} />
+                {emp.licenseNo
+                  ? <DocCell label="License Expiry" date={emp.licenseExpiry} status={lS.status} />
+                  : <Cell label="License Expiry" value="—" />}
                 <Cell label="Joining Date" value={emp.joiningDate} />
                 <Cell label="Employment Category" value={emp.roleType} />
                 {(() => {
                   const ticket = calculateTicketEligibility(emp.roleType, emp.joiningDate, today);
                   return (
-                    <Cell 
-                      label="Annual Ticket Eligibility" 
-                      value={`${ticket.type}${ticket.eligible ? ' (Eligible)' : ' (Not Eligible yet)'}`} 
-                    />
+                    <div className="detail-cell">
+                      <div className="detail-cell-label">Annual Ticket Eligibility</div>
+                      <div className="detail-cell-value doc-val">
+                        {ticket.type}
+                        <span className={`tag ${ticket.eligible ? 'ok' : 'muted'}`}>{ticket.eligible ? 'Eligible' : 'Not yet'}</span>
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
 
-              <h3 className="section-title">Salary & Allowances</h3>
+              <h3 className="section-title">Salary &amp; Allowances</h3>
               <div className="detail-grid">
                 <Cell label="Basic Salary" value={`${basic.toLocaleString()} QAR`} />
                 <Cell label="Accommodation" value={emp.accommodationType === 'company' ? 'Company Provided' : emp.accommodationType === 'self' ? 'Self (Allowance)' : 'Other'} />
@@ -153,22 +169,11 @@ export default function ProfilePage({ params }) {
                 <Cell label="Transport" value={`${trans.toLocaleString()} QAR`} />
                 <Cell label="Phone" value={`${phone.toLocaleString()} QAR`} />
                 <Cell label="Food Allowance" value={`${food.toLocaleString()} QAR`} />
-                <div className="detail-cell">
+                <div className="detail-cell accent">
                   <div className="detail-cell-label">Total Gross</div>
-                  <div className="detail-cell-value" style={{ color: 'var(--accent)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.15rem' }}>
-                    {gross.toLocaleString()} QAR
-                  </div>
+                  <div className="detail-cell-value">{gross.toLocaleString()} QAR</div>
                 </div>
               </div>
-
-              {emp.status !== 'Terminated' && (
-                <div className="action-bar">
-                  <Link href={`/employees/${emp.id}/vacation`} className="btn btn-primary">Book Vacation</Link>
-                  <Link href={`/employees/${emp.id}/hike`} className="btn btn-ghost">Apply Hike</Link>
-                  <div style={{ flex: 1 }} />
-                  <button onClick={() => setTab('eos')} className="btn btn-ghost" style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>End of Service</button>
-                </div>
-              )}
             </>
           )}
 
@@ -178,99 +183,156 @@ export default function ProfilePage({ params }) {
               <div className="ledger-head">
                 <h3>Vacation History</h3>
                 {emp.status !== 'Terminated' && (
-                  <Link href={`/employees/${emp.id}/vacation`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '.8rem' }}>+ Book Leave</Link>
+                  <Link href={`/employees/${emp.id}/vacation`} className="btn btn-primary btn-sm">+ Book Leave</Link>
                 )}
               </div>
-              <div className="ledger-wrap mobile-hide">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Start</th>
-                      <th>End</th>
-                      <th>Days</th>
-                      <th>Daily Rate</th>
-                      <th>Paid / Excess</th>
-                      <th>Estimated Payout</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {emp.vacations.length === 0
-                      ? <tr><td colSpan={7} className="empty-state">No vacations logged.</td></tr>
-                      : [...emp.vacations].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).map(v => {
-                          const hasMetrics = typeof v.netSalary === 'number';
-                          const fallbackBasis = basic + phone + food + (emp.accommodationType === 'self' ? accom : 0);
-                          const fallbackDaily = fallbackBasis / 30;
-                          const daily = hasMetrics ? v.dailyRate : fallbackDaily;
-                          const paid = hasMetrics ? v.paidDays : v.duration;
-                          const excess = hasMetrics ? v.excessDays : 0;
-                          const net = hasMetrics ? v.netSalary : (v.duration * daily);
-                          return (
-                            <tr key={v.id}>
-                              <td>{v.startDate}</td>
-                              <td>{v.endDate}</td>
-                              <td>{v.duration} days</td>
-                              <td>{daily.toFixed(2)} QAR</td>
-                              <td>
-                                <span style={{ color: 'var(--green)', fontWeight: 600 }}>{paid.toFixed(1)}d</span>
-                                {excess > 0 && (
-                                  <span style={{ color: 'var(--red)', fontWeight: 600 }}> / {excess.toFixed(1)}d</span>
-                                )}
-                              </td>
-                              <td style={{ fontWeight: 700, color: net < 0 ? 'var(--red)' : 'var(--green)' }}>
-                                {net < 0 ? '−' : ''}{Math.abs(net).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR
-                              </td>
-                              <td><span className="badge-pill badge-active">Done</span></td>
-                            </tr>
-                          );
-                        })}
-                  </tbody>
-                </table>
-              </div>
 
-              <div className="mobile-card-list mobile-show">
-                {emp.vacations.length === 0
-                  ? <div className="empty-state">No vacations logged.</div>
-                  : [...emp.vacations].sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).map(v => {
-                      const hasMetrics = typeof v.netSalary === 'number';
-                      const fallbackBasis = basic + phone + food + (emp.accommodationType === 'self' ? accom : 0);
-                      const fallbackDaily = fallbackBasis / 30;
-                      const daily = hasMetrics ? v.dailyRate : fallbackDaily;
-                      const paid = hasMetrics ? v.paidDays : v.duration;
-                      const excess = hasMetrics ? v.excessDays : 0;
-                      const net = hasMetrics ? v.netSalary : (v.duration * daily);
-                      return (
-                        <div key={v.id} className="detail-mini-card">
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Period</span>
-                            <span className="detail-mini-value">{v.startDate} → {v.endDate}</span>
+              {emp.vacations.length === 0 ? (
+                <div className="empty-rich">
+                  <div className="empty-rich-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                  </div>
+                  <h3>No vacations logged</h3>
+                  <p>This employee hasn&apos;t taken any leave yet. Book their first vacation to start the record.</p>
+                  {emp.status !== 'Terminated' && <Link href={`/employees/${emp.id}/vacation`} className="btn btn-primary">+ Book Leave</Link>}
+                </div>
+              ) : (() => {
+                const sorted = [...emp.vacations].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                const totalDays = emp.vacations.reduce((s, v) => s + v.duration, 0);
+                const totalUnpaid = emp.vacations.reduce((s, v) => s + (v.unpaidDays ?? v.excessDays ?? 0), 0);
+                const totalPaid = emp.vacations.reduce((s, v) => s + Math.max(0, typeof v.netSalary === 'number' ? v.netSalary : 0), 0);
+                const ticketsTaken = emp.vacations.filter(v => v.ticketTaken).length;
+                return (
+                  <>
+                    {(() => {
+                      const now = new Date(today);
+                      const activeVacation = sorted.find(v => {
+                        const start = new Date(v.startDate);
+                        const end = new Date(v.endDate);
+                        return now >= start && now <= end;
+                      });
+
+                      if (activeVacation) {
+                        const end = new Date(activeVacation.endDate);
+                        const diffTime = end - now;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        // Arrive back date is the day after the vacation end date
+                        const returnDate = new Date(end);
+                        returnDate.setDate(returnDate.getDate() + 1);
+                        const returnStr = returnDate.toISOString().split('T')[0];
+
+                        return (
+                          <div className="alert warning" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                              <span>Ongoing Leave Alert</span>
+                            </div>
+                            <div style={{ fontSize: '.85rem' }}>
+                              This employee is currently on leave. <strong>{diffDays} days</strong> left. Expected return date: <strong>{returnStr}</strong>.
+                            </div>
                           </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Duration</span>
-                            <span className="detail-mini-value">{v.duration} days</span>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    <div className="ledger-summary">
+                      <div className="ledger-stat"><span className="k">Trips</span><span className="v">{emp.vacations.length}</span></div>
+                      <div className="ledger-stat"><span className="k">Total Days</span><span className="v">{totalDays}<small>d</small></span></div>
+                      <div className="ledger-stat"><span className="k">Unpaid Days</span><span className={`v ${totalUnpaid > 0 ? 'warn' : ''}`}>{totalUnpaid}<small>d</small></span></div>
+                      <div className="ledger-stat"><span className="k">Tickets Taken</span><span className="v">{ticketsTaken}</span></div>
+                      <div className="ledger-stat"><span className="k">Total Leave Salary</span><span className="v pos">{totalPaid.toLocaleString(undefined, {maximumFractionDigits: 0})}<small>QAR</small></span></div>
+                    </div>
+
+                    <div className="ledger-wrap mobile-hide">
+                      <table className="tbl">
+                        <thead>
+                          <tr><th>Start</th><th>End</th><th>Days</th><th>Daily Rate</th><th>Paid / Unpaid</th><th>Leave Salary</th><th>Ticket</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                          {sorted.map(v => {
+                            const hasMetrics = typeof v.netSalary === 'number';
+                            const fallbackBasis = basic + phone + food + (emp.accommodationType === 'self' ? accom : 0);
+                            const fallbackDaily = fallbackBasis / 30;
+                            const daily = hasMetrics ? v.dailyRate : fallbackDaily;
+                            const paid = hasMetrics ? v.paidDays : v.duration;
+                            const unpaid = v.unpaidDays ?? v.excessDays ?? 0;
+                            const net = Math.max(0, hasMetrics ? v.netSalary : (v.duration * daily));
+                            return (
+                              <tr key={v.id}>
+                                <td>{v.startDate}</td>
+                                <td>{v.endDate}</td>
+                                <td>{v.duration} days</td>
+                                <td>{daily.toFixed(2)} QAR</td>
+                                <td>
+                                  <span style={{ color: 'var(--green)', fontWeight: 600 }}>{paid.toFixed(1)}d</span>
+                                  {unpaid > 0 && <span style={{ color: 'var(--amber)', fontWeight: 600 }}> / {unpaid.toFixed(1)}d unpaid</span>}
+                                </td>
+                                <td style={{ fontWeight: 700, color: 'var(--green)' }}>
+                                  {net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR
+                                </td>
+                                <td>{v.ticketTaken
+                                  ? <span className="tag ok">{(v.ticketType || 'Ticket').replace(' Ticket', '')}</span>
+                                  : <span style={{ color: 'var(--text-3)' }}>—</span>}</td>
+                                <td><span className="badge-pill badge-active">Done</span></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mobile-card-list mobile-show">
+                      {sorted.map(v => {
+                        const hasMetrics = typeof v.netSalary === 'number';
+                        const fallbackBasis = basic + phone + food + (emp.accommodationType === 'self' ? accom : 0);
+                        const fallbackDaily = fallbackBasis / 30;
+                        const daily = hasMetrics ? v.dailyRate : fallbackDaily;
+                        const paid = hasMetrics ? v.paidDays : v.duration;
+                        const unpaid = v.unpaidDays ?? v.excessDays ?? 0;
+                        const net = Math.max(0, hasMetrics ? v.netSalary : (v.duration * daily));
+                        return (
+                          <div key={v.id} className="detail-mini-card">
+                            <div className="detail-mini-row">
+                              <span className="detail-mini-label">Period</span>
+                              <span className="detail-mini-value">{v.startDate} → {v.endDate}</span>
+                            </div>
+                            <div className="detail-mini-row">
+                              <span className="detail-mini-label">Duration</span>
+                              <span className="detail-mini-value">{v.duration} days</span>
+                            </div>
+                            <div className="detail-mini-row">
+                              <span className="detail-mini-label">Daily Rate</span>
+                              <span className="detail-mini-value">{daily.toFixed(2)} QAR</span>
+                            </div>
+                            <div className="detail-mini-row">
+                              <span className="detail-mini-label">Paid / Unpaid</span>
+                              <span className="detail-mini-value">
+                                <span style={{ color: 'var(--green)', fontWeight: 600 }}>{paid.toFixed(1)}d</span>
+                                {unpaid > 0 && <span style={{ color: 'var(--amber)', fontWeight: 600 }}> / {unpaid.toFixed(1)}d unpaid</span>}
+                              </span>
+                            </div>
+                            <div className="detail-mini-row">
+                              <span className="detail-mini-label">Leave Salary</span>
+                              <span className="detail-mini-value" style={{ fontWeight: 700, color: 'var(--green)' }}>
+                                {net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR
+                              </span>
+                            </div>
+                            <div className="detail-mini-row">
+                              <span className="detail-mini-label">Air Ticket</span>
+                              <span className="detail-mini-value">{v.ticketTaken
+                                ? <span className="tag ok">{v.ticketType || 'Ticket'}</span>
+                                : 'Not taken'}</span>
+                            </div>
+                            <div style={{ marginTop: 8 }}><span className="badge-pill badge-active">Done</span></div>
                           </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Daily Rate</span>
-                            <span className="detail-mini-value">{daily.toFixed(2)} QAR</span>
-                          </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Paid / Excess</span>
-                            <span className="detail-mini-value">
-                              <span style={{ color: 'var(--green)', fontWeight: 600 }}>{paid.toFixed(1)}d</span>
-                              {excess > 0 && <span style={{ color: 'var(--red)', fontWeight: 600 }}> / {excess.toFixed(1)}d excess</span>}
-                            </span>
-                          </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Payout</span>
-                            <span className="detail-mini-value" style={{ fontWeight: 700, color: net < 0 ? 'var(--red)' : 'var(--green)' }}>
-                              {net < 0 ? '−' : ''}{Math.abs(net).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR
-                            </span>
-                          </div>
-                          <div style={{ marginTop: 8 }}><span className="badge-pill badge-active">Done</span></div>
-                        </div>
-                      );
-                    })}
-              </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           )}
 
@@ -280,40 +342,53 @@ export default function ProfilePage({ params }) {
               <div className="ledger-head">
                 <h3>Salary Hike History</h3>
                 {emp.status !== 'Terminated' && (
-                  <Link href={`/employees/${emp.id}/hike`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '.8rem' }}>+ Apply Hike</Link>
+                  <Link href={`/employees/${emp.id}/hike`} className="btn btn-primary btn-sm">+ Apply Hike</Link>
                 )}
               </div>
-              <div className="ledger-wrap mobile-hide">
-                <table className="tbl">
-                  <thead><tr><th>Effective</th><th>Gross Change</th><th>% Increase</th><th>Reason</th></tr></thead>
-                  <tbody>
-                    {(!emp.salaryHistory || emp.salaryHistory.length === 0)
-                      ? <tr><td colSpan={4} className="empty-state">No hikes recorded.</td></tr>
-                      : emp.salaryHistory.map(h => {
-                        const oldG = h.oldBasicSalary + (h.oldAllowances?.accommodation || 0) + (h.oldAllowances?.transport || 0) + (h.oldAllowances?.phone || 0) + (h.oldAllowances?.food || 0);
-                        const newG = h.newBasicSalary + (h.newAllowances?.accommodation || 0) + (h.newAllowances?.transport || 0) + (h.newAllowances?.phone || 0) + (h.newAllowances?.food || 0);
-                        const pct = ((newG - oldG) / oldG * 100).toFixed(1);
-                        return (
-                          <tr key={h.id}>
-                            <td>{h.effectiveDate}</td>
-                            <td>{oldG.toLocaleString()} → {newG.toLocaleString()} QAR</td>
-                            <td style={{ color: 'var(--green)', fontWeight: 700 }}>+{pct}%</td>
-                            <td>{h.reason}</td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
 
-              <div className="mobile-card-list mobile-show">
-                {(!emp.salaryHistory || emp.salaryHistory.length === 0)
-                  ? <div className="empty-state">No hikes recorded.</div>
-                  : emp.salaryHistory.map(h => {
-                      const oldG = h.oldBasicSalary + (h.oldAllowances?.accommodation || 0) + (h.oldAllowances?.transport || 0) + (h.oldAllowances?.phone || 0) + (h.oldAllowances?.food || 0);
-                      const newG = h.newBasicSalary + (h.newAllowances?.accommodation || 0) + (h.newAllowances?.transport || 0) + (h.newAllowances?.phone || 0) + (h.newAllowances?.food || 0);
-                      const pct = ((newG - oldG) / oldG * 100).toFixed(1);
-                      return (
+              {(!emp.salaryHistory || emp.salaryHistory.length === 0) ? (
+                <div className="empty-rich">
+                  <div className="empty-rich-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                  </div>
+                  <h3>No hikes recorded</h3>
+                  <p>No salary adjustments have been applied yet. The current gross is {gross.toLocaleString()} QAR/mo.</p>
+                  {emp.status !== 'Terminated' && <Link href={`/employees/${emp.id}/hike`} className="btn btn-primary">+ Apply Hike</Link>}
+                </div>
+              ) : (() => {
+                const rows = emp.salaryHistory.map(h => {
+                  const oldG = h.oldBasicSalary + (h.oldAllowances?.accommodation || 0) + (h.oldAllowances?.transport || 0) + (h.oldAllowances?.phone || 0) + (h.oldAllowances?.food || 0);
+                  const newG = h.newBasicSalary + (h.newAllowances?.accommodation || 0) + (h.newAllowances?.transport || 0) + (h.newAllowances?.phone || 0) + (h.newAllowances?.food || 0);
+                  const pct = ((newG - oldG) / oldG * 100);
+                  return { h, oldG, newG, pct };
+                });
+                const latest = rows[rows.length - 1];
+                return (
+                  <>
+                    <div className="ledger-summary">
+                      <div className="ledger-stat"><span className="k">Current Gross</span><span className="v">{gross.toLocaleString()}<small>QAR</small></span></div>
+                      <div className="ledger-stat"><span className="k">Total Raises</span><span className="v">{rows.length}</span></div>
+                      <div className="ledger-stat"><span className="k">Latest Increase</span><span className={`v ${latest.pct < 0 ? 'neg' : 'pos'}`}>{latest.pct >= 0 ? '+' : ''}{latest.pct.toFixed(1)}<small>%</small></span></div>
+                    </div>
+
+                    <div className="ledger-wrap mobile-hide">
+                      <table className="tbl">
+                        <thead><tr><th>Effective</th><th>Gross Change</th><th>% Increase</th><th>Reason</th></tr></thead>
+                        <tbody>
+                          {rows.map(({ h, oldG, newG, pct }) => (
+                            <tr key={h.id}>
+                              <td>{h.effectiveDate}</td>
+                              <td>{oldG.toLocaleString()} → {newG.toLocaleString()} QAR</td>
+                              <td><span className={`tag ${pct < 0 ? 'bad' : 'ok'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span></td>
+                              <td>{h.reason}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mobile-card-list mobile-show">
+                      {rows.map(({ h, oldG, newG, pct }) => (
                         <div key={h.id} className="detail-mini-card">
                           <div className="detail-mini-row">
                             <span className="detail-mini-label">Effective Date</span>
@@ -329,16 +404,18 @@ export default function ProfilePage({ params }) {
                           </div>
                           <div className="detail-mini-row">
                             <span className="detail-mini-label">Increase</span>
-                            <span className="detail-mini-value" style={{ color: 'var(--green)', fontWeight: 700 }}>+{pct}%</span>
+                            <span className="detail-mini-value"><span className={`tag ${pct < 0 ? 'bad' : 'ok'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span></span>
                           </div>
                           <div className="detail-mini-row">
                             <span className="detail-mini-label">Reason</span>
                             <span className="detail-mini-value">{h.reason}</span>
                           </div>
                         </div>
-                      );
-                    })}
-              </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           )}
 
@@ -369,9 +446,9 @@ export default function ProfilePage({ params }) {
                     <div className="detail-grid" style={{ marginBottom: 16 }}>
                       <Cell label="Monthly Leave Basis" value={`${basis.toLocaleString()} QAR`} />
                       <Cell label="Daily Leave Rate" value={`${dailyRate.toFixed(2)} QAR/day`} />
-                      <div className="detail-cell">
+                      <div className="detail-cell hl">
                         <div className="detail-cell-label">Current Unused Value</div>
-                        <div className="detail-cell-value" style={{ color: netBalance < 0 ? 'var(--red)' : 'var(--green)' }}>
+                        <div className={`detail-cell-value ${netBalance < 0 ? 'neg' : 'pos'}`}>
                           {netBalance < 0 ? '−' : ''}{Math.abs(unusedValue).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} QAR
                         </div>
                       </div>
@@ -399,9 +476,9 @@ export default function ProfilePage({ params }) {
                 <Cell label="Accrual Start" value={lastReturn} />
                 <Cell label="Elapsed Days" value={`${elapsed} days`} />
                 <Cell label="Current Rate" value={`${rate} days/year`} />
-                <div className="detail-cell">
+                <div className="detail-cell hl">
                   <div className="detail-cell-label">Net Balance</div>
-                  <div className="detail-cell-value" style={{ color: balance < 0 ? 'var(--red)' : 'var(--green)', fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: '1.15rem' }}>
+                  <div className={`detail-cell-value ${balance < 0 ? 'neg' : 'pos'}`}>
                     {balance.toFixed(2)} days
                   </div>
                 </div>
@@ -413,9 +490,12 @@ export default function ProfilePage({ params }) {
           {tab === 'eos' && (
             <>
               {emp.status === 'Terminated' ? (
-                <div className="info-box" style={{ textAlign: 'center' }}>
-                  <h3 style={{ color: 'var(--red)', marginBottom: 8 }}>Employee is Terminated</h3>
-                  <p>This profile was deactivated on <strong>{emp.endDate}</strong>.</p>
+                <div className="empty-rich">
+                  <div className="empty-rich-ico" style={{ background: 'var(--red-subtle)', color: 'var(--red)' }}>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                  </div>
+                  <h3>Employee is Terminated</h3>
+                  <p>This profile was deactivated on <strong>{emp.endDate}</strong>. End-of-service was already processed.</p>
                 </div>
               ) : (
                 <div>
@@ -450,58 +530,53 @@ export default function ProfilePage({ params }) {
 
                     return (
                       <>
-                        <h3 className="section-title" style={{ marginTop: 0 }}>Settlement Breakdown</h3>
-                        <div className="eos-list">
-                          <div className="eos-row">
-                            <span>Service Duration</span>
-                            <span style={{ fontWeight: 700 }}>{eos.tenure.years}y {eos.tenure.months}m {eos.tenure.days}d ({eos.tenure.totalDays} days)</span>
-                          </div>
-                          <div className="eos-row">
-                            <span>Basic Salary</span>
-                            <span style={{ fontWeight: 700 }}>{eos.basicSalary.toLocaleString()} QAR</span>
-                          </div>
+                        {/* Net payout hero */}
+                        <div className="payout-hero">
+                          <span className="k">Net End-of-Service Payout</span>
+                          <span className="v">{eos.netPayout.toLocaleString()} QAR</span>
+                          <span className="sub">
+                            {eos.tenure.years}y {eos.tenure.months}m {eos.tenure.days}d of service
+                            <span className="dot" />
+                            as of {eosDate}
+                          </span>
                         </div>
 
-                        <h3 className="section-title">Gratuity — Art. 54 (Basic Salary)</h3>
-                        <div className="eos-list">
-                          <div className="eos-row">
-                            <span>Daily Basic Wage</span>
-                            <span>{eos.basicSalary.toLocaleString()} ÷ 30 = <strong>{eos.dailyBasicWage.toFixed(2)} QAR</strong></span>
+                        {/* Gratuity */}
+                        <div className="stmt">
+                          <div className="stmt-head">
+                            <span className="ico stat-icon green">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>
+                            </span>
+                            <div>Gratuity — Art. 54<small>Based on basic salary only</small></div>
                           </div>
-                          <div className="eos-row">
-                            <span>Gratuity Days</span>
-                            <span>21 days/yr × {eos.tenureYears} yrs = <strong>{eos.gratuityDays.toFixed(2)} days</strong></span>
+                          <div className="stmt-body calc">
+                            <div className="calc-row"><span className="lbl">Daily Basic Wage</span><span className="val">{eos.basicSalary.toLocaleString()} ÷ 30 = {eos.dailyBasicWage.toFixed(2)} QAR</span></div>
+                            <div className="calc-row"><span className="lbl">Gratuity Days</span><span className="val">21 × {eos.tenureYears} yrs = {eos.gratuityDays.toFixed(2)} days</span></div>
                           </div>
-                          <div className="eos-row plus">
-                            <span>Gratuity Amount</span>
-                            <span style={{ fontWeight: 700 }}>{eos.gratuityAmount.toLocaleString()} QAR</span>
-                          </div>
+                          <div className="stmt-total"><span>Gratuity Amount</span><span className="amt pos">+{eos.gratuityAmount.toLocaleString()} QAR</span></div>
                         </div>
 
-                        <h3 className="section-title">Leave Encashment (Basic + Phone + Food + Accom. if self)</h3>
-                        <div className="eos-list">
-                          <div className="eos-row">
-                            <span>Accrual Starts From</span>
-                            <span style={{ fontWeight: 700 }}>{accrualBasisLabel}</span>
+                        {/* Leave encashment */}
+                        <div className="stmt">
+                          <div className="stmt-head">
+                            <span className="ico stat-icon blue">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                            </span>
+                            <div>Leave Encashment<small>Basic + Phone + Food (+ Accom. if self)</small></div>
                           </div>
-                          <div className="eos-row">
-                            <span>Monthly Leave Basis</span>
-                            <span>{eos.leaveSalaryBasis.toLocaleString()} QAR</span>
+                          <div className="stmt-body calc">
+                            <div className="calc-row"><span className="lbl">Accrual Starts From</span><span className="val">{accrualBasisLabel}</span></div>
+                            <div className="calc-row"><span className="lbl">Monthly Leave Basis</span><span className="val">{eos.leaveSalaryBasis.toLocaleString()} QAR</span></div>
+                            <div className="calc-row"><span className="lbl">Daily Leave Wage</span><span className="val">{eos.leaveSalaryBasis.toLocaleString()} ÷ 30 = {eos.dailyLeaveWage.toFixed(2)} QAR</span></div>
+                            <div className={`calc-row ${eos.vacationBalance < 0 ? 'neg' : 'pos'}`}><span className="lbl">Unused Leave Balance</span><span className="val">{eos.vacationBalance.toFixed(2)} days</span></div>
                           </div>
-                          <div className="eos-row">
-                            <span>Daily Leave Wage</span>
-                            <span>{eos.leaveSalaryBasis.toLocaleString()} ÷ 30 = <strong>{eos.dailyLeaveWage.toFixed(2)} QAR</strong></span>
-                          </div>
-                          <div className="eos-row">
-                            <span>Unused Leave Balance</span>
-                            <span style={{ fontWeight: 700, color: eos.vacationBalance < 0 ? 'var(--red)' : 'var(--green)' }}>{eos.vacationBalance.toFixed(2)} days</span>
-                          </div>
-                          <div className={`eos-row ${eos.vacationBalance < 0 ? 'minus' : 'plus'}`}>
+                          <div className="stmt-total">
                             <span>Leave Settlement</span>
-                            <span style={{ fontWeight: 700 }}>{eos.vacationBalance < 0 ? '−' : '+'}{Math.abs(eos.vacationSettlement).toLocaleString()} QAR</span>
+                            <span className={`amt ${eos.vacationBalance < 0 ? 'neg' : 'pos'}`}>{eos.vacationBalance < 0 ? '−' : '+'}{Math.abs(eos.vacationSettlement).toLocaleString()} QAR</span>
                           </div>
                         </div>
 
+                        {/* Net total */}
                         <div className="eos-list">
                           <div className="eos-row total">
                             <span>Net Payout</span>
@@ -515,8 +590,15 @@ export default function ProfilePage({ params }) {
                           </p>
                         </div>
 
-                        <div className="form-footer" style={{ marginTop: 0, paddingTop: 16 }}>
-                          <button className="btn btn-danger" style={{ width: '100%' }} onClick={confirmTermination}>Confirm & Terminate Employee</button>
+                        <div className="danger-zone">
+                          <div className="danger-zone-text">
+                            <strong>Terminate employment</strong>
+                            <span>Marks this profile as Terminated and records the settlement. You can revert this from the Activity Center.</span>
+                          </div>
+                          <button className="btn btn-danger" onClick={confirmTermination}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" /><line x1="12" y1="2" x2="12" y2="12" /></svg>
+                            Confirm &amp; Terminate
+                          </button>
                         </div>
                       </>
                     );
@@ -536,6 +618,24 @@ function Cell({ label, value }) {
     <div className="detail-cell">
       <div className="detail-cell-label">{label}</div>
       <div className="detail-cell-value">{value}</div>
+    </div>
+  );
+}
+
+function DocCell({ label, date, status }) {
+  const map = {
+    expired:  { cls: 'bad',  txt: 'Expired' },
+    expiring: { cls: 'warn', txt: 'Expiring' },
+    active:   { cls: 'ok',   txt: 'Valid' },
+  };
+  const s = map[status] || map.active;
+  return (
+    <div className="detail-cell">
+      <div className="detail-cell-label">{label}</div>
+      <div className="detail-cell-value doc-val">
+        {date || '—'}
+        {date && <span className={`tag ${s.cls}`}>{s.txt}</span>}
+      </div>
     </div>
   );
 }

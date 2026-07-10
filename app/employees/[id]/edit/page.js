@@ -1,20 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { use, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useHR } from '../../context';
+import { useHR } from '../../../context';
 
-export default function AddEmployeePage() {
-  const { addEmployee, toast } = useHR();
+export default function EditEmployeePage({ params }) {
+  const { id } = use(params);
+  const { employees, updateEmployee, ready, toast } = useHR();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
-  const [f, setF] = useState({
-    name: '', qid: '', qidExpiry: '', passport: '', passportExpiry: '',
-    license: '', licenseExpiry: '', joining: '', roleType: 'Staff',
-    basic: '', accomType: 'company', accomAllow: '0', trans: '0', phone: '0', food: '0'
-  });
+  const emp = useMemo(() => employees.find(e => e.id === id) || null, [employees, id]);
+
+  const [f, setF] = useState(null);
+
+  // Initialise the form once the employee is available
+  useMemo(() => {
+    if (emp && !f) {
+      setF({
+        name: emp.name || '',
+        qid: emp.qid || '',
+        qidExpiry: emp.qidExpiry || '',
+        passport: emp.passportNo || '',
+        passportExpiry: emp.passportExpiry || '',
+        license: emp.licenseNo || '',
+        licenseExpiry: emp.licenseExpiry || '',
+        joining: emp.joiningDate || '',
+        roleType: emp.roleType || 'Staff',
+        basic: String(emp.basicSalary ?? ''),
+        accomType: emp.accommodationType || 'company',
+        accomAllow: String(emp.accommodationAllowance ?? '0'),
+        trans: String(emp.transportAllowance ?? '0'),
+        phone: String(emp.phoneAllowance ?? '0'),
+        food: String(emp.foodAllowance ?? '0'),
+      });
+    }
+  }, [emp]);
+
+  if (!ready) return null;
+
+  if (!emp) {
+    return (
+      <div className="app-shell">
+        <div className="page-card" style={{ maxWidth: 520, margin: '40px auto 0' }}>
+          <div className="empty-rich">
+            <div className="empty-rich-ico">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            </div>
+            <h3>Employee not found</h3>
+            <p>No employee exists with ID <strong>{id}</strong>.</p>
+            <Link href="/" className="btn btn-primary">← Back to Dashboard</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!f) return null;
 
   const set = (key) => (e) => setF(p => ({ ...p, [key]: e.target.value }));
 
@@ -30,11 +73,14 @@ export default function AddEmployeePage() {
     if (!f.name || !f.qid || !f.joining || !f.basic) { toast('Please fill all required fields.', 'error'); return; }
 
     setSaving(true);
-    const newEmp = {
-      id: `EMP-${Date.now().toString().slice(-4)}`,
-      name: f.name, qid: f.qid, qidExpiry: f.qidExpiry,
-      passportNo: f.passport, passportExpiry: f.passportExpiry,
-      licenseNo: f.license, licenseExpiry: f.licenseExpiry,
+    const data = {
+      name: f.name,
+      qid: f.qid,
+      qidExpiry: f.qidExpiry,
+      passportNo: f.passport,
+      passportExpiry: f.passportExpiry,
+      licenseNo: f.license,
+      licenseExpiry: f.licenseExpiry,
       joiningDate: f.joining,
       roleType: f.roleType,
       basicSalary: parseFloat(f.basic) || 0,
@@ -43,16 +89,15 @@ export default function AddEmployeePage() {
       transportAllowance: parseFloat(f.trans) || 0,
       phoneAllowance: parseFloat(f.phone) || 0,
       foodAllowance: parseFloat(f.food) || 0,
-      vacations: [], salaryHistory: [], status: 'Active'
     };
 
     try {
-      await addEmployee(newEmp);
-      toast(`${f.name} added successfully.`);
-      router.push('/');
+      await updateEmployee(emp.id, data);
+      toast(`${f.name} updated successfully.`);
+      router.push(`/employees/${emp.id}`);
     } catch (err) {
       setSaving(false);
-      toast('Failed to create employee.', 'error');
+      toast('Failed to update employee.', 'error');
     }
   };
 
@@ -62,12 +107,12 @@ export default function AddEmployeePage() {
         <div className="page-head">
           <div>
             <h2 className="page-head-title">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
-              New Employee
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z" /></svg>
+              Edit Employee
             </h2>
-            <div className="page-head-sub">Create a new employee profile</div>
+            <div className="page-head-sub">{emp.name} ({emp.id})</div>
           </div>
-          <Link href="/" className="btn btn-ghost">← Dashboard</Link>
+          <Link href={`/employees/${emp.id}`} className="btn btn-ghost">← Profile</Link>
         </div>
 
         <form onSubmit={submit} className="page-body">
@@ -75,13 +120,7 @@ export default function AddEmployeePage() {
           <p className="form-hint">Identity and document details. Fields marked <span className="req">*</span> are required.</p>
           <div className="form-grid">
             <div className="field"><label>Full Name <span className="req">*</span></label><input value={f.name} onChange={set('name')} placeholder="Enter full name" required /></div>
-            <div className="field">
-              <label>QID (Qatar ID) <span className="req">*</span></label>
-              <input value={f.qid} onChange={set('qid')} placeholder="11 digits" inputMode="numeric" maxLength={11} required />
-              <span className="field-hint" style={{ fontSize: '.75rem', marginTop: 4, display: 'block', color: f.qid.length === 11 ? 'var(--green)' : 'var(--text-3)' }}>
-                {f.qid.length} / 11 digits
-              </span>
-            </div>
+            <div className="field"><label>QID (Qatar ID) <span className="req">*</span></label><input value={f.qid} onChange={set('qid')} placeholder="11 digits" inputMode="numeric" maxLength={11} required /></div>
             <div className="field"><label>QID Expiry <span className="req">*</span></label><input type="date" value={f.qidExpiry} onChange={set('qidExpiry')} required /></div>
             <div className="field"><label>Passport No <span className="req">*</span></label><input value={f.passport} onChange={set('passport')} placeholder="Passport number" required /></div>
             <div className="field"><label>Passport Expiry <span className="req">*</span></label><input type="date" value={f.passportExpiry} onChange={set('passportExpiry')} required /></div>
@@ -127,9 +166,13 @@ export default function AddEmployeePage() {
             <span className="v">{gross.toLocaleString()} QAR</span>
           </div>
 
+          <p className="form-note">
+            Editing here updates the employee&apos;s current details only. It does not create a salary-hike history record — use <strong>Apply Hike</strong> for tracked pay changes.
+          </p>
+
           <div className="form-footer">
-            <Link href="/" className="btn btn-ghost">Cancel</Link>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Profile'}</button>
+            <Link href={`/employees/${emp.id}`} className="btn btn-ghost">Cancel</Link>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
           </div>
         </form>
       </div>

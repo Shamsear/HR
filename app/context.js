@@ -243,7 +243,14 @@ export function HRProvider({ children }) {
             startDate: v.start_date,
             endDate: v.end_date,
             duration: Number(v.duration),
-            status: v.status
+            status: v.status,
+            ticketType: v.ticket_type || 'None',
+            ticketTaken: !!v.ticket_taken,
+            paidDays: v.paid_days != null ? Number(v.paid_days) : null,
+            unpaidDays: v.unpaid_days != null ? Number(v.unpaid_days) : null,
+            dailyRate: v.daily_rate != null ? Number(v.daily_rate) : null,
+            netSalary: v.net_salary != null ? Number(v.net_salary) : null,
+            leaveSalaryBasis: v.leave_basis != null ? Number(v.leave_basis) : null
           }));
 
         const empHikes = hikes
@@ -355,7 +362,14 @@ export function HRProvider({ children }) {
             start_date: v.startDate,
             end_date: v.endDate,
             duration: v.duration,
-            status: v.status
+            status: v.status,
+            ticket_type: v.ticketType || 'None',
+            ticket_taken: !!v.ticketTaken,
+            paid_days: v.paidDays ?? 0,
+            unpaid_days: v.unpaidDays ?? 0,
+            daily_rate: v.dailyRate ?? 0,
+            net_salary: v.netSalary ?? 0,
+            leave_basis: v.leaveSalaryBasis ?? 0
           });
         }
       }
@@ -523,6 +537,28 @@ export function HRProvider({ children }) {
     await refreshData();
   };
 
+  const updateEmployee = async (empId, data) => {
+    await supabase.from('employees').update({
+      name: data.name,
+      qid: data.qid,
+      qid_expiry: data.qidExpiry,
+      passport_no: data.passportNo,
+      passport_expiry: data.passportExpiry,
+      license_no: data.licenseNo || null,
+      license_expiry: data.licenseExpiry || null,
+      joining_date: data.joiningDate,
+      role_type: data.roleType,
+      basic_salary: data.basicSalary,
+      accommodation_type: data.accommodationType,
+      accommodation_allowance: data.accommodationAllowance,
+      transport_allowance: data.transportAllowance,
+      phone_allowance: data.phoneAllowance,
+      food_allowance: data.foodAllowance
+    }).eq('id', empId);
+
+    await refreshData();
+  };
+
   const bookVacation = async (empId, startStr, endStr, duration, metrics) => {
     const target = employees.find(e => e.id === empId);
     const newVacId = `leave-${empId}-${Date.now()}`;
@@ -533,7 +569,14 @@ export function HRProvider({ children }) {
       start_date: startStr,
       end_date: endStr,
       duration: duration,
-      status: 'Completed'
+      status: 'Completed',
+      ticket_type: metrics?.ticketType || 'None',
+      ticket_taken: !!metrics?.ticketTaken,
+      paid_days: metrics?.paidDays ?? 0,
+      unpaid_days: metrics?.unpaidDays ?? 0,
+      daily_rate: metrics?.dailyRate ?? 0,
+      net_salary: metrics?.netSalary ?? 0,
+      leave_basis: metrics?.leaveSalaryBasis ?? 0
     });
 
     const balance = AccrualEngine.calculateVacationBalance(target, startStr) - duration;
@@ -713,7 +756,14 @@ export function HRProvider({ children }) {
                   start_date: v.startDate,
                   end_date: v.endDate,
                   duration: v.duration,
-                  status: v.status || 'Completed'
+                  status: v.status || 'Completed',
+                  ticket_type: v.ticketType || 'None',
+                  ticket_taken: !!v.ticketTaken,
+                  paid_days: v.paidDays ?? 0,
+                  unpaid_days: v.unpaidDays ?? 0,
+                  daily_rate: v.dailyRate ?? 0,
+                  net_salary: v.netSalary ?? 0,
+                  leave_basis: v.leaveSalaryBasis ?? 0
                 });
               }
             }
@@ -876,7 +926,7 @@ export function HRProvider({ children }) {
     <HRContext.Provider value={{
       employees, notifications, search, setSearch, roleTypeFilter, setRoleTypeFilter,
       statusFilter, setStatusFilter, currentPage, setCurrentPage, pushEnabled,
-      darkMode, ready, seedDatabase, addEmployee, bookVacation, applySalaryHike,
+      darkMode, ready, seedDatabase, addEmployee, updateEmployee, bookVacation, applySalaryHike,
       processEOS, exportCSV, importJSON, clearNotifications, clearNotification,
       markAllRead, markNotificationRead, toggleTheme, handleEnablePush,
       drawerOpen, setDrawerOpen, isAuthenticated, login, logout,
