@@ -275,9 +275,9 @@ export default function ProfilePage({ params }) {
 
           {/* Tabs */}
           <div className="seg">
-            {['general', 'vacations', 'salary', 'accrual', 'eos'].map(t => (
+            {['general', 'vacations', 'salary', 'accrual', 'renewals', 'eos'].map(t => (
               <button key={t} className={`seg-btn ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
-                {t === 'general' ? 'General' : t === 'vacations' ? 'Vacations' : t === 'salary' ? 'Salary' : t === 'accrual' ? 'Accrual' : 'End of Service'}
+                {t === 'general' ? 'General' : t === 'vacations' ? 'Vacations' : t === 'salary' ? 'Salary' : t === 'accrual' ? 'Accrual' : t === 'renewals' ? 'Document Logs' : 'End of Service'}
               </button>
             ))}
           </div>
@@ -326,55 +326,6 @@ export default function ProfilePage({ params }) {
                 </div>
               </div>
 
-              {/* Document Renewal Logs */}
-              <h3 className="section-title" style={{ marginTop: 24 }}>Document Renewal History</h3>
-              {renewalLogs.length === 0 ? (
-                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '20px 24px', textAlign: 'center', fontSize: '.86rem', color: 'var(--text-3)' }}>
-                  No document renewals have been processed for this employee yet.
-                </div>
-              ) : (
-                <div className="ledger-wrap" style={{ marginTop: 12 }}>
-                  <table className="tbl" style={{ width: '100%' }}>
-                    <thead>
-                      <tr>
-                        <th>Document</th>
-                        <th>Renewed On</th>
-                        <th>Old Expiry</th>
-                        <th>New Expiry</th>
-                        <th style={{ textAlign: 'right' }}>Status / Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {renewalLogs.map((log) => {
-                        const dateStr = log.details?.updatedAt 
-                          ? new Date(log.details.updatedAt).toLocaleString()
-                          : new Date(log.created_at).toLocaleString();
-                        return (
-                          <tr key={log.id}>
-                            <td><strong>{log.details?.docType}</strong></td>
-                            <td style={{ fontSize: '.8rem', color: 'var(--text-2)' }}>{dateStr}</td>
-                            <td style={{ color: 'var(--text-3)' }}>{log.details?.oldExpiryDate || '—'}</td>
-                            <td><strong style={{ color: 'var(--green)' }}>{log.details?.newExpiryDate}</strong></td>
-                            <td style={{ textAlign: 'right' }}>
-                              {log.reverted ? (
-                                <span className="tag muted" style={{ fontSize: '.7rem' }}>Reverted</span>
-                              ) : (
-                                <button
-                                  onClick={() => triggerRevertDoc(log.id, log.details?.docType)}
-                                  className="btn btn-ghost btn-sm"
-                                  style={{ color: 'var(--red)', fontSize: '.72rem', padding: '3px 8px', cursor: 'pointer' }}
-                                >
-                                  Revert
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </>
           )}
 
@@ -710,6 +661,67 @@ export default function ProfilePage({ params }) {
                   </div>
                 </div>
               </div>
+            </>
+          )}
+
+          {/* ── DOCUMENT RENEWAL LOGS ── */}
+          {tab === 'renewals' && (
+            <>
+              <div className="ledger-head" style={{ marginBottom: 20 }}>
+                <h3>Document Renewal History</h3>
+              </div>
+
+              {renewalLogs.length === 0 ? (
+                <div className="empty-rich">
+                  <div className="empty-rich-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <h3>No renewals logged</h3>
+                  <p>No document renewals have been processed for this employee yet.</p>
+                </div>
+              ) : (
+                <div className="ledger-wrap">
+                  <table className="tbl" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Renewed On</th>
+                        <th>Old Expiry</th>
+                        <th>New Expiry</th>
+                        <th style={{ textAlign: 'right' }}>Status / Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {renewalLogs.map((log) => {
+                        const dateStr = log.details?.updatedAt 
+                          ? new Date(log.details.updatedAt).toLocaleString()
+                          : new Date(log.created_at).toLocaleString();
+                        return (
+                          <tr key={log.id}>
+                            <td><strong>{log.details?.docType}</strong></td>
+                            <td style={{ fontSize: '.8rem', color: 'var(--text-2)' }}>{dateStr}</td>
+                            <td style={{ color: 'var(--text-3)' }}>{log.details?.oldExpiryDate || '—'}</td>
+                            <td><strong style={{ color: 'var(--green)' }}>{log.details?.newExpiryDate}</strong></td>
+                            <td style={{ textAlign: 'right' }}>
+                              {log.reverted ? (
+                                <span className="tag muted" style={{ fontSize: '.7rem' }}>Reverted</span>
+                              ) : (
+                                <button
+                                  onClick={() => triggerRevertDoc(log.id, log.details?.docType)}
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ color: 'var(--red)', fontSize: '.72rem', padding: '3px 8px', cursor: 'pointer' }}
+                                >
+                                  Revert
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
 
