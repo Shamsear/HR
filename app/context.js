@@ -428,21 +428,34 @@ export function HRProvider({ children }) {
     const todayStr = formatDate(new Date());
     const alerts = [];
 
+    const getAlertInfo = (docName, docNo, status, days) => {
+      if (status === 'expired') {
+        return { title: `${docName} Expired: ${docNo}`, body: `${docName} (${docNo}) has expired! Renew immediately.`, category: 'danger' };
+      } else if (status === 'urgent') {
+        return { title: `${docName} Urgent: ${docNo}`, body: `${docName} (${docNo}) expires in ${days} days (Urgent).`, category: 'danger' };
+      } else if (status === 'critical') {
+        return { title: `${docName} Critical: ${docNo}`, body: `${docName} (${docNo}) expires in ${days} days (Critical).`, category: 'warning' };
+      } else if (status === 'warning') {
+        return { title: `${docName} Expiring: ${docNo}`, body: `${docName} (${docNo}) expires in ${days} days (Warning).`, category: 'warning' };
+      }
+      return null;
+    };
+
     empList.forEach(emp => {
       if (emp.status === 'Terminated') return;
 
       const qid = getDocumentExpiryStatus(emp.qidExpiry, todayStr);
-      if (qid.status === 'expired') alerts.push({ emp, title: `QID Expired: ${emp.name}`, body: `QID ${emp.qid} has expired! Renew immediately.`, category: 'danger' });
-      else if (qid.status === 'expiring') alerts.push({ emp, title: `QID Expiring: ${emp.name}`, body: `QID ${emp.qid} expires in ${qid.daysRemaining} days.`, category: 'warning' });
+      const qidAlert = getAlertInfo('QID', emp.qid, qid.status, qid.daysRemaining);
+      if (qidAlert) alerts.push({ emp, ...qidAlert });
 
       const ppt = getDocumentExpiryStatus(emp.passportExpiry, todayStr);
-      if (ppt.status === 'expired') alerts.push({ emp, title: `Passport Expired: ${emp.name}`, body: `Passport ${emp.passportNo} has expired!`, category: 'danger' });
-      else if (ppt.status === 'expiring') alerts.push({ emp, title: `Passport Expiring: ${emp.name}`, body: `Passport ${emp.passportNo} expires in ${ppt.daysRemaining} days.`, category: 'warning' });
+      const pptAlert = getAlertInfo('Passport', emp.passportNo, ppt.status, ppt.daysRemaining);
+      if (pptAlert) alerts.push({ emp, ...pptAlert });
 
       if (emp.licenseNo && emp.licenseExpiry) {
         const lic = getDocumentExpiryStatus(emp.licenseExpiry, todayStr);
-        if (lic.status === 'expired') alerts.push({ emp, title: `License Expired: ${emp.name}`, body: `Driving License ${emp.licenseNo} has expired!`, category: 'danger' });
-        else if (lic.status === 'expiring') alerts.push({ emp, title: `License Expiring: ${emp.name}`, body: `Driving License ${emp.licenseNo} expires in ${lic.daysRemaining} days.`, category: 'warning' });
+        const licAlert = getAlertInfo('License', emp.licenseNo, lic.status, lic.daysRemaining);
+        if (licAlert) alerts.push({ emp, ...licAlert });
       }
     });
 
@@ -867,6 +880,11 @@ export function HRProvider({ children }) {
         } else {
           await supabase.from('terminations').delete().eq('employee_id', empId);
         }
+      } else if (log.action_type === 'RENEW_DOCUMENT') {
+        const colName = details.docType === 'QID' ? 'qid_expiry' : details.docType === 'Passport' ? 'passport_expiry' : 'license_expiry';
+        await supabase.from('employees').update({
+          [colName]: details.oldExpiryDate
+        }).eq('id', empId);
       }
 
       await supabase.from('audit_logs').update({ reverted: true }).eq('id', logId);
@@ -934,13 +952,18 @@ export function HRProvider({ children }) {
   };
 
   const renewDocument = async (empId, docType, newExpiryDate) => {
+    const target = employees.find(e => e.id === empId);
+    let oldExpiryDate = null;
+    if (target) {
+      oldExpiryDate = docType === 'QID' ? target.qidExpiry : docType === 'Passport' ? target.passportExpiry : target.licenseExpiry;
+    }
+
     const colName = docType === 'QID' ? 'qid_expiry' : docType === 'Passport' ? 'passport_expiry' : 'license_expiry';
     
     await supabase.from('employees').update({
       [colName]: newExpiryDate
     }).eq('id', empId);
 
-    const target = employees.find(e => e.id === empId);
     const title = `${docType} Renewed`;
     const body = `${target ? target.name : empId}'s ${docType} has been renewed to ${newExpiryDate}.`;
 
@@ -953,7 +976,13 @@ export function HRProvider({ children }) {
       is_read: false
     });
 
-    await logAuditAction('RENEW_DOCUMENT', empId, { employeeId: empId, docType, newExpiryDate });
+    await logAuditAction('RENEW_DOCUMENT', empId, { 
+      employeeId: empId, 
+      docType, 
+      oldExpiryDate, 
+      newExpiryDate, 
+      updatedAt: new Date().toISOString() 
+    });
     await refreshData();
     triggerNativeNotification(title, body);
   };

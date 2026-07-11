@@ -55,7 +55,11 @@ export function getDocumentExpiryStatus(expiryDateStr, checkDateStr = formatDate
   if (diffDays < 0) {
     return { status: 'expired', label: 'Expired', daysRemaining: diffDays };
   } else if (diffDays <= 30) {
-    return { status: 'expiring', label: `Expiring in ${diffDays} days`, daysRemaining: diffDays };
+    return { status: 'urgent', label: `Expires in ${diffDays} days`, daysRemaining: diffDays };
+  } else if (diffDays <= 60) {
+    return { status: 'critical', label: `Expires in ${diffDays} days`, daysRemaining: diffDays };
+  } else if (diffDays <= 90) {
+    return { status: 'warning', label: `Expires in ${diffDays} days`, daysRemaining: diffDays };
   } else {
     return { status: 'active', label: 'Valid', daysRemaining: diffDays };
   }

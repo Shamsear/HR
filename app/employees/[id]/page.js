@@ -9,7 +9,7 @@ const MSDAY = 86400000;
 
 export default function ProfilePage({ params }) {
   const { id } = use(params);
-  const { employees, processEOS, ready, toast, confirm } = useHR();
+  const { employees, processEOS, ready, toast, confirm, revertAction, auditLogs } = useHR();
   const [tab, setTab] = useState('general');
   const [eosDate, setEosDate] = useState(() => formatDate(new Date()));
   const today = useMemo(() => formatDate(new Date()), []);
@@ -64,6 +64,138 @@ export default function ProfilePage({ params }) {
     const end = new Date(v.endDate);
     return new Date(today) > end;
   });
+
+  const timelineEvents = useMemo(() => {
+    if (!emp) return [];
+
+    const events = [];
+
+    // 1. Initial State (Joining)
+    const initialHike = emp.salaryHistory && emp.salaryHistory.length > 0
+      ? [...emp.salaryHistory].sort((a, b) => new Date(a.effectiveDate) - new Date(b.effectiveDate))[0]
+      : null;
+
+    const initialBasic = initialHike ? initialHike.oldBasicSalary : emp.basicSalary;
+    const initialAllowances = initialHike ? initialHike.oldAllowances : {
+      accommodation: emp.accommodationType === 'self' ? emp.accommodationAllowance : 0,
+      transport: emp.transportAllowance,
+      phone: emp.phoneAllowance,
+      food: emp.foodAllowance,
+      other: emp.otherAllowance
+    };
+    const initialGross = initialBasic + (initialAllowances?.accommodation || 0) + (initialAllowances?.transport || 0) + (initialAllowances?.phone || 0) + (initialAllowances?.food || 0) + (initialAllowances?.other || 0);
+
+    events.push({
+      date: emp.joiningDate,
+      type: 'join',
+      title: 'Employment Commenced',
+      sub: 'Employee joined the company with initial contract packages.',
+      basic: initialBasic,
+      allowances: initialAllowances,
+      gross: initialGross
+    });
+
+    // 2. Hikes
+    if (emp.salaryHistory && emp.salaryHistory.length > 0) {
+      emp.salaryHistory.forEach(h => {
+        const oldG = h.oldBasicSalary + (h.oldAllowances?.accommodation || 0) + (h.oldAllowances?.transport || 0) + (h.oldAllowances?.phone || 0) + (h.oldAllowances?.food || 0) + (h.oldAllowances?.other || 0);
+        const newG = h.newBasicSalary + (h.newAllowances?.accommodation || 0) + (h.newAllowances?.transport || 0) + (h.newAllowances?.phone || 0) + (h.newAllowances?.food || 0) + (h.newAllowances?.other || 0);
+        const pct = oldG > 0 ? ((newG - oldG) / oldG * 100) : 0;
+        const diff = newG - oldG;
+
+        // Try to find matching audit log for revert
+        const matchingLog = auditLogs && auditLogs.find(l => 
+          l.actionType === 'APPLY_HIKE' && 
+          l.employeeId === emp.id && 
+          l.details?.hikeId === h.id && 
+          !l.reverted
+        );
+
+        events.push({
+          date: h.effectiveDate,
+          type: 'hike',
+          id: h.id,
+          title: `Salary Hike: ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`,
+          sub: h.reason || 'Salary Adjustment',
+          oldBasic: h.oldBasicSalary,
+          newBasic: h.newBasicSalary,
+          oldAllowances: h.oldAllowances,
+          newAllowances: h.newAllowances,
+          oldGross: oldG,
+          newGross: newG,
+          pct,
+          diff,
+          auditLogId: matchingLog ? matchingLog.id : null
+        });
+      });
+    }
+
+    // 3. Termination
+    if (emp.status === 'Terminated' && emp.endDate) {
+      events.push({
+        date: emp.endDate,
+        type: 'eos',
+        title: 'Employment Terminated',
+        sub: 'Processed End-of-Service and calculated settlement payout.',
+        payout: emp.eosDetails ? emp.eosDetails.netPayout : null,
+        tenure: emp.eosDetails ? emp.eosDetails.tenure : null
+      });
+    }
+
+    // Sort chronologically
+    return events.sort((a, b) => {
+      const diff = new Date(a.date) - new Date(b.date);
+      if (diff !== 0) return diff;
+      // Secondary sorting: join, then hike, then eos
+      const order = { join: 1, hike: 2, eos: 3 };
+      return order[a.type] - order[b.type];
+    });
+  }, [emp, auditLogs]);
+
+  const renewalLogs = useMemo(() => {
+    if (!auditLogs) return [];
+    return auditLogs
+      .filter(l => l.actionType === 'RENEW_DOCUMENT' && l.employeeId === emp.id)
+      .sort((a, b) => {
+        const timeA = new Date(a.details?.updatedAt || a.created_at || 0).getTime();
+        const timeB = new Date(b.details?.updatedAt || b.created_at || 0).getTime();
+        return timeB - timeA;
+      });
+  }, [auditLogs, emp.id]);
+
+  const triggerRevert = async (logId) => {
+    const ok = await confirm({
+      title: 'Revert Salary Hike',
+      message: 'Are you sure you want to revert this salary hike? The employee\'s basic salary and allowances will be restored to their previous values, and this history record will be deleted.',
+      confirmLabel: 'Revert Hike',
+      danger: true
+    });
+    if (!ok) return;
+
+    const success = await revertAction(logId);
+    if (success) {
+      toast('Salary hike reverted.');
+    } else {
+      toast('Failed to revert hike.', 'error');
+    }
+  };
+
+  const triggerRevertDoc = async (logId, docType) => {
+    const ok = await confirm({
+      title: `Revert ${docType} Renewal`,
+      message: `Are you sure you want to revert this ${docType} renewal? The expiration date will be restored to its previous value.`,
+      confirmLabel: 'Revert Renewal',
+      danger: true
+    });
+    if (!ok) return;
+
+    const success = await revertAction(logId);
+    if (success) {
+      toast(`${docType} renewal reverted.`);
+    } else {
+      toast('Failed to revert renewal.', 'error');
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -193,6 +325,56 @@ export default function ProfilePage({ params }) {
                   <div className="detail-cell-value">{gross.toLocaleString()} QAR</div>
                 </div>
               </div>
+
+              {/* Document Renewal Logs */}
+              <h3 className="section-title" style={{ marginTop: 24 }}>Document Renewal History</h3>
+              {renewalLogs.length === 0 ? (
+                <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '20px 24px', textAlign: 'center', fontSize: '.86rem', color: 'var(--text-3)' }}>
+                  No document renewals have been processed for this employee yet.
+                </div>
+              ) : (
+                <div className="ledger-wrap" style={{ marginTop: 12 }}>
+                  <table className="tbl" style={{ width: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Renewed On</th>
+                        <th>Old Expiry</th>
+                        <th>New Expiry</th>
+                        <th style={{ textAlign: 'right' }}>Status / Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {renewalLogs.map((log) => {
+                        const dateStr = log.details?.updatedAt 
+                          ? new Date(log.details.updatedAt).toLocaleString()
+                          : new Date(log.created_at).toLocaleString();
+                        return (
+                          <tr key={log.id}>
+                            <td><strong>{log.details?.docType}</strong></td>
+                            <td style={{ fontSize: '.8rem', color: 'var(--text-2)' }}>{dateStr}</td>
+                            <td style={{ color: 'var(--text-3)' }}>{log.details?.oldExpiryDate || '—'}</td>
+                            <td><strong style={{ color: 'var(--green)' }}>{log.details?.newExpiryDate}</strong></td>
+                            <td style={{ textAlign: 'right' }}>
+                              {log.reverted ? (
+                                <span className="tag muted" style={{ fontSize: '.7rem' }}>Reverted</span>
+                              ) : (
+                                <button
+                                  onClick={() => triggerRevertDoc(log.id, log.details?.docType)}
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ color: 'var(--red)', fontSize: '.72rem', padding: '3px 8px', cursor: 'pointer' }}
+                                >
+                                  Revert
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
 
@@ -367,83 +549,100 @@ export default function ProfilePage({ params }) {
           {/* ── SALARY ── */}
           {tab === 'salary' && (
             <>
-              <div className="ledger-head">
-                <h3>Salary Hike History</h3>
+              <div className="ledger-head" style={{ marginBottom: 20 }}>
+                <h3>Compensation Timeline</h3>
                 {emp.status !== 'Terminated' && (
                   <Link href={`/employees/${emp.id}/hike`} className="btn btn-primary btn-sm">+ Apply Hike</Link>
                 )}
               </div>
 
-              {(!emp.salaryHistory || emp.salaryHistory.length === 0) ? (
-                <div className="empty-rich">
-                  <div className="empty-rich-ico">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-                  </div>
-                  <h3>No hikes recorded</h3>
-                  <p>No salary adjustments have been applied yet. The current gross is {gross.toLocaleString()} QAR/mo.</p>
-                  {emp.status !== 'Terminated' && <Link href={`/employees/${emp.id}/hike`} className="btn btn-primary">+ Apply Hike</Link>}
-                </div>
-              ) : (() => {
-                const rows = emp.salaryHistory.map(h => {
-                  const oldG = h.oldBasicSalary + (h.oldAllowances?.accommodation || 0) + (h.oldAllowances?.transport || 0) + (h.oldAllowances?.phone || 0) + (h.oldAllowances?.food || 0);
-                  const newG = h.newBasicSalary + (h.newAllowances?.accommodation || 0) + (h.newAllowances?.transport || 0) + (h.newAllowances?.phone || 0) + (h.newAllowances?.food || 0);
-                  const pct = ((newG - oldG) / oldG * 100);
-                  return { h, oldG, newG, pct };
-                });
-                const latest = rows[rows.length - 1];
-                return (
-                  <>
-                    <div className="ledger-summary">
-                      <div className="ledger-stat"><span className="k">Current Gross</span><span className="v">{gross.toLocaleString()}<small>QAR</small></span></div>
-                      <div className="ledger-stat"><span className="k">Total Raises</span><span className="v">{rows.length}</span></div>
-                      <div className="ledger-stat"><span className="k">Latest Increase</span><span className={`v ${latest.pct < 0 ? 'neg' : 'pos'}`}>{latest.pct >= 0 ? '+' : ''}{latest.pct.toFixed(1)}<small>%</small></span></div>
-                    </div>
+              <div className="timeline-container">
+                {timelineEvents.map((e, idx) => {
+                  return (
+                    <div key={idx} className="timeline-item">
+                      <div className={`timeline-dot ${e.type}`} />
+                      <div className="timeline-meta">
+                        <span className="timeline-date">{e.date}</span>
+                        <span className={`timeline-type ${e.type}`}>
+                          {e.type === 'join' ? 'Joining' : e.type === 'hike' ? 'Salary Hike' : 'Termination'}
+                        </span>
+                      </div>
+                      
+                      <div className="timeline-card">
+                        <h4 className="timeline-card-title">{e.title}</h4>
+                        <p className="timeline-card-sub">{e.sub}</p>
 
-                    <div className="ledger-wrap mobile-hide">
-                      <table className="tbl">
-                        <thead><tr><th>Effective</th><th>Gross Change</th><th>% Increase</th><th>Reason</th></tr></thead>
-                        <tbody>
-                          {rows.map(({ h, oldG, newG, pct }) => (
-                            <tr key={h.id}>
-                              <td>{h.effectiveDate}</td>
-                              <td>{oldG.toLocaleString()} → {newG.toLocaleString()} QAR</td>
-                              <td><span className={`tag ${pct < 0 ? 'bad' : 'ok'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span></td>
-                              <td>{h.reason}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        {/* Event details based on type */}
+                        {e.type === 'join' && (
+                          <div className="timeline-grid">
+                            <div className="timeline-grid-item"><span>Basic Salary</span><strong>{e.basic.toLocaleString()} QAR</strong></div>
+                            <div className="timeline-grid-item"><span>Transport</span><strong>{(e.allowances?.transport || 0).toLocaleString()} QAR</strong></div>
+                            <div className="timeline-grid-item"><span>Phone</span><strong>{(e.allowances?.phone || 0).toLocaleString()} QAR</strong></div>
+                            <div className="timeline-grid-item"><span>Food</span><strong>{(e.allowances?.food || 0).toLocaleString()} QAR</strong></div>
+                            <div className="timeline-grid-item"><span>Other</span><strong>{(e.allowances?.other || 0).toLocaleString()} QAR</strong></div>
+                            <div className="timeline-grid-item"><span>Initial Gross</span><strong style={{ color: 'var(--accent)' }}>{e.gross.toLocaleString()} QAR</strong></div>
+                          </div>
+                        )}
 
-                    <div className="mobile-card-list mobile-show">
-                      {rows.map(({ h, oldG, newG, pct }) => (
-                        <div key={h.id} className="detail-mini-card">
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Effective Date</span>
-                            <span className="detail-mini-value">{h.effectiveDate}</span>
+                        {e.type === 'hike' && (
+                          <div>
+                            <div className="timeline-compare" style={{ marginBottom: 12 }}>
+                              <span className="old">{e.oldGross.toLocaleString()} QAR</span>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-3)' }}><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                              <span className="new">{e.newGross.toLocaleString()} QAR</span>
+                              <span className={`diff ${e.diff >= 0 ? 'up' : 'down'}`}>
+                                {e.diff >= 0 ? '+' : ''}{e.diff.toLocaleString()} QAR
+                              </span>
+                            </div>
+
+                            <div className="timeline-grid">
+                              <div className="timeline-grid-item">
+                                <span>Basic Salary</span>
+                                <strong>{e.oldBasic.toLocaleString()} → {e.newBasic.toLocaleString()} QAR</strong>
+                              </div>
+                              <div className="timeline-grid-item">
+                                <span>Transport</span>
+                                <strong>{(e.oldAllowances?.transport || 0).toLocaleString()} → {(e.newAllowances?.transport || 0).toLocaleString()} QAR</strong>
+                              </div>
+                              <div className="timeline-grid-item">
+                                <span>Phone</span>
+                                <strong>{(e.oldAllowances?.phone || 0).toLocaleString()} → {(e.newAllowances?.phone || 0).toLocaleString()} QAR</strong>
+                              </div>
+                              <div className="timeline-grid-item">
+                                <span>Food</span>
+                                <strong>{(e.oldAllowances?.food || 0).toLocaleString()} → {(e.newAllowances?.food || 0).toLocaleString()} QAR</strong>
+                              </div>
+                              <div className="timeline-grid-item">
+                                <span>Other</span>
+                                <strong>{(e.oldAllowances?.other || 0).toLocaleString()} → {(e.newAllowances?.other || 0).toLocaleString()} QAR</strong>
+                              </div>
+                            </div>
+
+                            {e.auditLogId && (
+                              <div className="timeline-revert">
+                                <button 
+                                  onClick={() => triggerRevert(e.auditLogId)}
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ color: 'var(--red)', borderColor: 'var(--red)', cursor: 'pointer' }}
+                                >
+                                  Revert Hike
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Old Gross</span>
-                            <span className="detail-mini-value">{oldG.toLocaleString()} QAR</span>
+                        )}
+
+                        {e.type === 'eos' && (
+                          <div className="timeline-grid">
+                            <div className="timeline-grid-item"><span>EOS Payout</span><strong style={{ color: 'var(--red)' }}>{e.payout ? `${e.payout.toLocaleString()} QAR` : '—'}</strong></div>
+                            <div className="timeline-grid-item"><span>Tenure</span><strong>{e.tenure ? `${e.tenure.years}y ${e.tenure.months}m ${e.tenure.days}d` : '—'}</strong></div>
                           </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">New Gross</span>
-                            <span className="detail-mini-value" style={{ color: 'var(--green)', fontWeight: 600 }}>{newG.toLocaleString()} QAR</span>
-                          </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Increase</span>
-                            <span className="detail-mini-value"><span className={`tag ${pct < 0 ? 'bad' : 'ok'}`}>{pct >= 0 ? '+' : ''}{pct.toFixed(1)}%</span></span>
-                          </div>
-                          <div className="detail-mini-row">
-                            <span className="detail-mini-label">Reason</span>
-                            <span className="detail-mini-value">{h.reason}</span>
-                          </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
-                  </>
-                );
-              })()}
+                  );
+                })}
+              </div>
             </>
           )}
 
@@ -657,7 +856,9 @@ function DocCell({ label, date, status, empId, docType }) {
 
   const map = {
     expired:  { cls: 'bad',  txt: 'Expired' },
-    expiring: { cls: 'warn', txt: 'Expiring' },
+    urgent:   { cls: 'bad',  txt: 'Expires <30d' },
+    critical: { cls: 'warn', txt: 'Expires <60d' },
+    warning:  { cls: 'warn', txt: 'Expires <90d' },
     active:   { cls: 'ok',   txt: 'Valid' },
   };
   const s = map[status] || map.active;

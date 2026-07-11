@@ -1855,3 +1855,145 @@ a.employee-card:active .ec-foot svg { transform: translateX(3px); }
 .confirm-msg { font-size: .88rem; color: var(--text-2); line-height: 1.55; margin-bottom: 22px; }
 .confirm-actions { display: flex; gap: 10px; }
 .confirm-actions .btn { flex: 1; padding: 11px; }
+
+/* ============================================================
+   CHRONOLOGICAL TIMELINE (Salary / Compensation History)
+   ============================================================ */
+.timeline-container {
+  position: relative;
+  padding: 10px 0 30px;
+  margin-top: 20px;
+}
+.timeline-container::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 16px;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-item {
+  position: relative;
+  padding-left: 44px;
+  margin-bottom: 30px;
+  animation: pageIn .35s var(--ease-out) both;
+}
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+.timeline-dot {
+  position: absolute;
+  left: 7px; top: 4px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 4px solid var(--border-strong);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  transition: transform .2s var(--ease);
+}
+.timeline-item:hover .timeline-dot {
+  transform: scale(1.15);
+}
+.timeline-dot.join { border-color: var(--green); background: var(--green-subtle); }
+.timeline-dot.hike { border-color: var(--accent); background: var(--accent-subtle); }
+.timeline-dot.eos { border-color: var(--red); background: var(--red-subtle); }
+
+.timeline-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.timeline-date {
+  font: 800 .95rem/1 var(--font-display);
+  color: var(--text-1);
+}
+.timeline-type {
+  font: 700 .68rem/1 var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-inset);
+  color: var(--text-3);
+}
+.timeline-type.join { background: var(--green-subtle); color: var(--green); }
+.timeline-type.hike { background: var(--accent-subtle); color: var(--accent); }
+.timeline-type.eos { background: var(--red-subtle); color: var(--red); }
+
+.timeline-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.timeline-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+.timeline-card-title {
+  font: 800 1.1rem/1.2 var(--font-display);
+  letter-spacing: -.01em;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+.timeline-card-sub {
+  font-size: .8rem;
+  color: var(--text-3);
+  margin-bottom: 12px;
+}
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  background: var(--bg-inset);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+}
+.timeline-grid-item {
+  font-size: .78rem;
+}
+.timeline-grid-item span {
+  display: block;
+  font: 700 .62rem/1.2 var(--font-body);
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 3px;
+}
+.timeline-grid-item strong {
+  font: 700 .86rem/1 var(--font-body);
+  color: var(--text-1);
+}
+.timeline-compare {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .84rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.timeline-compare .old { text-decoration: line-through; color: var(--text-3); }
+.timeline-compare .new { color: var(--text-1); font-weight: 700; }
+.timeline-compare .diff {
+  font-size: .74rem;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+.timeline-compare .diff.up { background: var(--green-subtle); color: var(--green); }
+.timeline-compare .diff.down { background: var(--red-subtle); color: var(--red); }
+
+.timeline-revert {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
