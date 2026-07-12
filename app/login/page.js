@@ -46,7 +46,7 @@ export default function LoginPage() {
       {/* ── Brand showcase panel ── */}
       <aside className="auth-brand">
         <div className="auth-brand-top">
-          <div className="auth-logo">HR</div>
+          <img src="/icon.jpg" className="auth-logo" alt="Logo" style={{ objectFit: 'cover' }} />
           <span className="auth-brand-name">HR Portal</span>
         </div>
 
@@ -76,7 +76,7 @@ export default function LoginPage() {
       <main className="auth-panel">
         <div className="auth-form-wrap">
           <div className="auth-mobile-logo">
-            <div className="auth-logo">HR</div>
+            <img src="/icon.jpg" className="auth-logo" alt="Logo" style={{ objectFit: 'cover' }} />
             <span className="auth-brand-name">HR Portal</span>
           </div>
 

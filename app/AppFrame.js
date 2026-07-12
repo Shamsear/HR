@@ -41,7 +41,7 @@ export default function AppFrame({ children }) {
     <div className="app-frame">
       <aside className="side-nav">
         <Link href="/" className="side-brand">
-          <span className="side-brand-logo">HR</span>
+          <img src="/icon.jpg" className="side-brand-logo" alt="Logo" style={{ objectFit: 'cover' }} />
           <span className="side-brand-text">
             <strong>HR Portal</strong>
             <small>Qatar · Vacation &amp; EOS</small>
