@@ -7,7 +7,7 @@ import AuthGuard from "./AuthGuard";
 import AppFrame from "./AppFrame";
 
 export const metadata = {
-  title: "Antigravity HR Portal - Qatar Vacation & EOS Tracker",
+  title: "HR Portal - Qatar Vacation & EOS Tracker",
   description: "Advanced HR Dashboard managing vacations, document expirations, salary hikes, and End of Service gratuity settlements.",
 };
 
